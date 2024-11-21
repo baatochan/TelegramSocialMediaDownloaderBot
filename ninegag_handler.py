@@ -5,14 +5,17 @@ import traceback
 import requests
 from bs4 import BeautifulSoup
 from getuseragent import UserAgent
+from selenium import webdriver
 
 
-def handle_url(link):
-    user_agent = UserAgent().Random()
-    headers = {'User-Agent': user_agent}
+def handle_url(link, use_selenium=True):
     try:
-        response = requests.get(link, headers=headers)
-        soup = BeautifulSoup(response.content.decode(), 'html.parser')
+        if (use_selenium):
+            page_source = handle_url_with_selenium(link)
+        else:
+            page_source = handle_url_with_requests(link)
+
+        soup = BeautifulSoup(page_source, 'html.parser')
         for script in soup.find_all('script', attrs={"type": "text/javascript"}):
             if "window._config = JSON.parse" in script.get_text():
                 script_json_text = script.get_text()
@@ -38,6 +41,23 @@ def handle_url(link):
     print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
     print("9gag returned incomplete json data.")
     return {}
+
+
+def handle_url_with_selenium(link):
+    ff_options = webdriver.FirefoxOptions()
+    ff_options.add_argument("--headless")
+    browser = webdriver.Firefox(options=ff_options)
+    browser.get(link)
+    source = browser.page_source
+    browser.quit()
+    return source
+
+
+def handle_url_with_requests(link):
+    user_agent = UserAgent().Random()
+    headers = {'User-Agent': user_agent}
+    response = requests.get(link, headers=headers)
+    return response.content.decode()
 
 
 def check_media_type(post_json_data):

@@ -49,6 +49,8 @@ else:
 ALLOWED_USERS = json.loads(config['config']['allowed_users'])
 ALLOWED_CHATS = json.loads(config['config']['allowed_chats'])
 
+SELENIUM_FOR_9GAG = config['9gag'].getboolean('use_selenium')
+
 bot = telebot.TeleBot(config['config']['token'])
 BOT_ID = bot.get_me().id
 PARSE_MODE = "MarkdownV2"
@@ -112,7 +114,7 @@ def handle_supported_site(message):
     ninegagLinks = list(filter(r.match, msgContent))
     for link in ninegagLinks:
         link = link.split("?")  # we don't need parameters after ?
-        handler_response = ninegag_handler.handle_url(link[0])
+        handler_response = ninegag_handler.handle_url(link[0], SELENIUM_FOR_9GAG)
         if "type" in handler_response:
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
