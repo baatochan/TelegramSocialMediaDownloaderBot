@@ -85,8 +85,8 @@ def handle_supported_site(message):
         return
     msgContent = message.text.split()
 
-    r1 = re.compile(SITE_REGEXES['9gag'])
-    ninegagLinks = list(filter(r1.match, msgContent))
+    r = re.compile(SITE_REGEXES['9gag'])
+    ninegagLinks = list(filter(r.match, msgContent))
     for link in ninegagLinks:
         link = link.split("?")  # we don't need parameters after ?
         handler_response = ninegag_handler.handle_url(link[0])
@@ -96,8 +96,8 @@ def handle_supported_site(message):
             print("Can't handle 9gag link: ")
             print(*link, sep="?")
 
-    r2 = re.compile(SITE_REGEXES['twitter'])
-    twitterLinks = list(filter(r2.match, msgContent))
+    r = re.compile(SITE_REGEXES['twitter'])
+    twitterLinks = list(filter(r.match, msgContent))
     for link in twitterLinks:
         link = link.split("?")  # we don't need parameters after ?
         handler_response = twitter_handler.handle_url(link[0])
@@ -107,8 +107,8 @@ def handle_supported_site(message):
             print("Can't handle twitter link: ")
             print(*link, sep="?")
 
-    r3 = re.compile(SITE_REGEXES['instagram'])
-    igLinks = list(filter(r3.match, msgContent))
+    r = re.compile(SITE_REGEXES['instagram'])
+    igLinks = list(filter(r.match, msgContent))
     for link in igLinks:
         link = link.split("?")  # we don't need parameters after ?
         handler_response = instagram_handler.handle_url(
@@ -120,8 +120,8 @@ def handle_supported_site(message):
             print(*link, sep="?")
             print(handler_response)
 
-    r2 = re.compile(SITE_REGEXES['booru'])
-    booruLinks = list(filter(r2.match, msgContent))
+    r = re.compile(SITE_REGEXES['booru'])
+    booruLinks = list(filter(r.match, msgContent))
     for link in booruLinks:
         link = link.split("?")  # we don't need parameters after ?
         handler_response = booru_handler.handle_url(link[0])
@@ -131,8 +131,8 @@ def handle_supported_site(message):
             print("Can't handle *booru link: ")
             print(*link, sep="?")
 
-    r5 = re.compile(SITE_REGEXES['demoty'])
-    demotyLinks = list(filter(r5.match, msgContent))
+    r = re.compile(SITE_REGEXES['demoty'])
+    demotyLinks = list(filter(r.match, msgContent))
     for link in demotyLinks:
         link = link.split("?")  # we don't need parameters after ?
         handler_response = demoty_handler.handle_url(link[0])
