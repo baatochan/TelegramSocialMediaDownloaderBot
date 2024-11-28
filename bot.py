@@ -16,6 +16,7 @@ from telebot.types import (InputMediaPhoto, InputMediaVideo,
 from tendo import singleton
 
 import booru_handler
+import demoty_handler
 import file_downloader
 import instagram_handler
 import ninegag_handler
@@ -52,6 +53,7 @@ SITE_REGEXES = {
     "twitter": "((http(s)?://)|^| )(www.)?((fixup|fixv)?x|(fx|vx)?twitter).com",
     "instagram": "((http(s)?://)|^| )(www.)?instagram.com",
     "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org",
+    "demoty": "((http(s)?://)|^| )(www.)?demotywatory.pl",
 }
 
 instagram_client = Client()
@@ -77,6 +79,7 @@ def send_welcome(message):
 @bot.message_handler(regexp=SITE_REGEXES['twitter'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 @bot.message_handler(regexp=SITE_REGEXES['instagram'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 @bot.message_handler(regexp=SITE_REGEXES['booru'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=SITE_REGEXES['demoty'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
@@ -126,6 +129,17 @@ def handle_supported_site(message):
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle *booru link: ")
+            print(*link, sep="?")
+
+    r5 = re.compile(SITE_REGEXES['demoty'])
+    demotyLinks = list(filter(r5.match, msgContent))
+    for link in demotyLinks:
+        link = link.split("?")  # we don't need parameters after ?
+        handler_response = demoty_handler.handle_url(link[0])
+        if "type" in handler_response:
+            send_post_to_tg(message, handler_response)
+        else:
+            print("Can't handle demotywatory link: ")
             print(*link, sep="?")
 
 
