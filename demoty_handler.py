@@ -71,4 +71,14 @@ def parse_meme(meme_content, id):
               return_data['url'])
         return {}
 
+    if meme_content.find("div", class_="youtube"):
+        yt_link = meme_content.find(
+            "div", class_="youtube").find("iframe")["src"]
+        yt_link = yt_link.split("?")[0]
+        yt_id = yt_link.split("/")[-1]
+        if not "text" in return_data:
+            return_data['text'] = ""
+        return_data['text'] = return_data['text'] + "\n" + \
+            "Ten demotywator zawiera link do yt: https://www.youtube.com/watch?v=" + yt_id
+
     return return_data
