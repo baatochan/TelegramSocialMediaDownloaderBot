@@ -59,6 +59,8 @@ SITE_REGEXES = {
 
 instagram_client = Client()
 
+USE_INSTAFIX = True
+
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -504,7 +506,11 @@ def respond_to_tiktok_links_with_fxtiktok(message):
 def respond_to_ig_link_with_instafix(original_message, link):
     # Workaround when Instagrapi (or my ig session/account) is not working
     # InstaFix (https://github.com/Wikidepia/InstaFix)
-    fixedLink = link.replace("instagram.com/", "ddinstagram.com/")
+    # FxInstagram (https://xnstagram.com/) is run by Allan Fernando
+    if USE_INSTAFIX == True:
+        fixedLink = link.replace("instagram.com/", "ddinstagram.com/")
+    else:
+        fixedLink = link.replace("instagram.com/", "xnstagram.com/")
     responseMsg = "[ㅤ](" + fixedLink + ")"
     bot.reply_to(original_message, responseMsg)
 
@@ -513,6 +519,20 @@ def respond_to_ig_link_with_instafix(original_message, link):
 def handle_link(message):
     if message.chat.id not in ALLOWED_CHATS:
         bot.reply_to(message, "This site is not supported yet\.")
+
+
+@bot.message_handler(regexp="UseInstafix = True", func=lambda message: message.from_user.id == ALLOWED_USERS[0])
+def set_useinstafix_true(message):
+    global USE_INSTAFIX
+    USE_INSTAFIX = True
+    bot.reply_to(message, "UseInstafix set to True\.")
+
+
+@bot.message_handler(regexp="UseInstafix = False", func=lambda message: message.from_user.id == ALLOWED_USERS[0])
+def set_useinstafix_true(message):
+    global USE_INSTAFIX
+    USE_INSTAFIX = False
+    bot.reply_to(message, "UseInstafix set to False\.")
 
 
 @bot.message_handler(regexp="test", func=lambda message: message.from_user.id in ALLOWED_USERS)
