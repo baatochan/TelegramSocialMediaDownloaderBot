@@ -53,7 +53,7 @@ SITE_REGEXES = {
     "twitter": "((http(s)?://)|^| )(www.)?((fixup|fixv)?x|(fx|vx)?twitter).com",
     "instagram": "((http(s)?://)|^| )(www.)?instagram.com",
     "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org",
-    "demoty": "((http(s)?://)|^| )(www.)?demotywatory.pl",
+    "demoty": "((http(s)?://)|^| )(www.|m.)?demotywatory.pl",
 }
 
 instagram_client = Client()
