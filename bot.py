@@ -143,6 +143,18 @@ def handle_supported_site(message):
             print(*link, sep="?")
 
 
+@bot.message_handler(regexp="^\s*(>>|»)\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+def handle_derpibooru_magic_character_request(message):
+    msg_text = message.text.strip()
+    msg_text = msg_text.lstrip(">>").lstrip("»")
+    handler_response = booru_handler.handle_url(
+        "https://derpibooru.org/{}".format(msg_text))
+    if "type" in handler_response:
+        send_post_to_tg(message, handler_response)
+    else:
+        print("Can't handle derpibooru img {}".format(msg_text))
+
+
 def send_post_to_tg(orig_tg_msg, handler_response):
     caption = prepare_caption(handler_response)
     msg_to_reply_to = orig_tg_msg

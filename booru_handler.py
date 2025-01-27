@@ -24,13 +24,15 @@ def handle_url(link):
         return {}
     domain = link_parts[site_id]
 
-    try:
-        images_id = link_parts.index('images')
-    except ValueError:
-        print("Couldn't get image from url (no images part): " + link)
+    if link_parts[site_id + 1] == "images":
+        post_number = link_parts[site_id + 2]
+    else:
+        post_number = link_parts[site_id + 1]
+
+    if not post_number.isdigit():
+        print("Couldn't get image from url (post number is not a number): " + link)
         print()
         return {}
-    post_number = link_parts[images_id + 1]
 
     try:
         response = requests.get(
@@ -40,7 +42,7 @@ def handle_url(link):
             return handle_image(result['image'], domain)
         else:
             print("Couldn't get image from url (code=" +
-                  response.status_code + "): " + link)
+                  str(response.status_code) + "): " + link)
             print()
             return {}
     except Exception as e:
@@ -70,8 +72,14 @@ def handle_image(booru_image, domain):
         case "jpg" | "jpeg" | "png" | "svg":
             # to be changed when booru api handles svg better
             # (currently only low quality png is returned)
-            return_data['media'] = [
-                [booru_image['representations']['full'], "photo"]]
+            # height + width > 8000 is safe margin because tg api has a limit of 10k
+            # but some images under 10k where rejected
+            if booru_image['height'] + booru_image['width'] > 8000:
+                return_data['media'] = [
+                    [booru_image['representations']['large'], "photo"]]
+            else:
+                return_data['media'] = [
+                    [booru_image['representations']['full'], "photo"]]
         case "gif":
             return_data['media'] = [
                 [booru_image['representations']['full'], "gif"]]
