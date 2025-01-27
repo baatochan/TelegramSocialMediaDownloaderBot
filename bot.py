@@ -112,14 +112,18 @@ def handle_supported_site(message):
     igLinks = list(filter(r.match, msgContent))
     for link in igLinks:
         link = link.split("?")  # we don't need parameters after ?
-        handler_response = instagram_handler.handle_url(
-            instagram_client, link[0])
-        if "type" in handler_response:
-            send_post_to_tg(message, handler_response)
-        else:
-            print("Can't handle instagram link: ")
-            print(*link, sep="?")
-            print(handler_response)
+        try:
+            handler_response = instagram_handler.handle_url(
+                instagram_client, link[0])
+            if "type" in handler_response:
+                send_post_to_tg(message, handler_response)
+            else:
+                respond_to_ig_link_with_instafix(message, link[0])
+                print("Can't handle instagram link: ")
+                print(*link, sep="?")
+                print(handler_response)
+        except:
+            respond_to_ig_link_with_instafix(message, link[0])
 
     r = re.compile(SITE_REGEXES['booru'])
     booruLinks = list(filter(r.match, msgContent))
@@ -495,6 +499,14 @@ def respond_to_tiktok_links_with_fxtiktok(message):
         fixedLink = link[0].replace("tiktok.com/", "tfxktok.com/")
         responseMsg = "[ㅤ](" + fixedLink + ")"
         bot.reply_to(message, responseMsg)
+
+
+def respond_to_ig_link_with_instafix(original_message, link):
+    # Workaround when Instagrapi (or my ig session/account) is not working
+    # InstaFix (https://github.com/Wikidepia/InstaFix)
+    fixedLink = link.replace("instagram.com/", "ddinstagram.com/")
+    responseMsg = "[ㅤ](" + fixedLink + ")"
+    bot.reply_to(original_message, responseMsg)
 
 
 @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
