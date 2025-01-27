@@ -54,6 +54,7 @@ SITE_REGEXES = {
     "instagram": "((http(s)?://)|^| )(www.)?instagram.com",
     "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org",
     "demoty": "((http(s)?://)|^| )(www.|m.)?demotywatory.pl",
+    "tiktok": "((http(s)?://)|^| )(www.|vm.)?tiktok.com",
 }
 
 instagram_client = Client()
@@ -479,6 +480,21 @@ def send_text_post(orig_tg_msg, caption, msg_to_reply_to):
                                     link_preview_options=LinkPreviewOptions(is_disabled=True))
     delete_handled_message(orig_tg_msg)
     return sent_message
+
+
+@bot.message_handler(regexp=SITE_REGEXES['tiktok'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+def respond_to_tiktok_links_with_fxtiktok(message):
+    # Maybe someday I will add native support for tiktok links
+    # as for now response with FxTikTok embed is a good enough solution
+    # FxTikTok (https://tfxktok.com/) is run by Allan Fernando
+    msgContent = message.text.split()
+    r = re.compile(SITE_REGEXES['tiktok'])
+    tiktokLinks = list(filter(r.match, msgContent))
+    for link in tiktokLinks:
+        link = link.split("?")  # we don't need parameters after ?
+        fixedLink = link[0].replace("tiktok.com/", "tfxktok.com/")
+        responseMsg = "[ㅤ](" + fixedLink + ")"
+        bot.reply_to(message, responseMsg)
 
 
 @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
