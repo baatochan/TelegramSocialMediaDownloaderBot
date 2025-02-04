@@ -50,12 +50,12 @@ bot.parse_mode = PARSE_MODE
 ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
 
 SITE_REGEXES = {
-    "9gag": "((http(s)?://)|^| )(www.)?9gag.com",
-    "twitter": "((http(s)?://)|^| )(www.)?((fixup|fixv)?x|(fx|vx)?twitter).com",
-    "instagram": "((http(s)?://)|^| )(www.)?instagram.com",
-    "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org",
-    "demoty": "((http(s)?://)|^| )(www.|m.)?demotywatory.pl",
-    "tiktok": "((http(s)?://)|^| )(www.|vm.|m.)?tiktok.com",
+    "9gag": "((http(s)?://)|^| )(www.)?9gag.com/.+",
+    "twitter": "((http(s)?://)|^| )(www.)?((fixup|fixv)?x|(fx|vx)?twitter).com/.+",
+    "instagram": "((http(s)?://)|^| )(www.)?instagram.com/.+",
+    "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org/.+",
+    "demoty": "((http(s)?://)|^| )(www.|m.)?demotywatory.pl/.+",
+    "tiktok": "((http(s)?://)|^| )(www.|vm.|m.)?tiktok.com/.+",
 }
 
 instagram_client = Client()
