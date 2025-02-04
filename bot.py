@@ -452,7 +452,7 @@ def send_multiple_media_post(orig_tg_msg, handler_response, caption, msg_to_repl
         # media post in tg can have at most 10 media
         send_split_multiple_media_post(
             orig_tg_msg, media_group, caption, msg_to_reply_to)
-    elif len(media_group) > 1:
+    elif len(media_group) > 0:
         if len(caption.long) <= 1024:
             media_group[0].caption = caption.long
             # workaround for a bug in telebot, will be fixed in a newer than 4.17.0 release
@@ -482,7 +482,7 @@ def send_multiple_media_post(orig_tg_msg, handler_response, caption, msg_to_repl
             delete_handled_message(orig_tg_msg)
             return sent_message_with_caption
     else:
-        print("Multi media post contains only one supported media.")
+        print("Multi media post doesn't contain any supported media.")
         print(handler_response)
         return orig_tg_msg
 
