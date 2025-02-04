@@ -124,7 +124,13 @@ def handle_supported_site(message):
                 print("Can't handle instagram link: ")
                 print(*link, sep="?")
                 print(handler_response)
-        except:
+        except Exception as e:
+            print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
+            traceback.print_exception(type(e), e, e.__traceback__)
+            print()
+            print("Can't handle instagram link: ")
+            print(*link, sep="?")
+            print("Falling back to instafix")
             respond_to_ig_link_with_instafix(message, link[0])
 
     r = re.compile(SITE_REGEXES['booru'])
