@@ -448,7 +448,11 @@ def send_multiple_media_post(orig_tg_msg, handler_response, caption, msg_to_repl
             print("This type of media (" + media[1] + ") is not supported.")
             print(handler_response)
 
-    if len(media_group) > 1:
+    if len(media_group) > 10:
+        # media post in tg can have at most 10 media
+        send_split_multiple_media_post(
+            orig_tg_msg, media_group, caption, msg_to_reply_to)
+    elif len(media_group) > 1:
         if len(caption.long) <= 1024:
             media_group[0].caption = caption.long
             # workaround for a bug in telebot, will be fixed in a newer than 4.17.0 release
@@ -481,6 +485,33 @@ def send_multiple_media_post(orig_tg_msg, handler_response, caption, msg_to_repl
         print("Multi media post contains only one supported media.")
         print(handler_response)
         return orig_tg_msg
+
+
+def send_split_multiple_media_post(orig_tg_msg, media_group, caption, msg_to_reply_to):
+    # split media_group into chunks of 10 elements
+    chunk_size = 10
+    media_groups = [media_group[i:i + chunk_size]
+                    for i in range(0, len(media_group), 10)]
+    for i in range(len(media_groups)):
+        media_groups[i][0].caption = caption.short
+        # workaround for a bug in telebot, will be fixed in a newer than 4.17.0 release
+        media_groups[i][0].parse_mode = PARSE_MODE
+        sent_message_arr = bot.send_media_group(chat_id=orig_tg_msg.chat.id,
+                                                media=media_groups[i],
+                                                reply_parameters=ReplyParameters(
+                                                    message_id=msg_to_reply_to.message_id,
+                                                    allow_sending_without_reply=True))
+        # next msg shall reply to the previous one
+        msg_to_reply_to = sent_message_arr[0]
+
+    sent_message_with_caption = bot.send_message(chat_id=orig_tg_msg.chat.id,
+                                                 text=caption.long,
+                                                 reply_parameters=ReplyParameters(
+                                                     message_id=msg_to_reply_to.message_id),
+                                                 link_preview_options=LinkPreviewOptions(is_disabled=True))
+
+    delete_handled_message(orig_tg_msg)
+    return sent_message_with_caption
 
 
 def send_text_post(orig_tg_msg, caption, msg_to_reply_to):
