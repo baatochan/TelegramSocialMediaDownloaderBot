@@ -20,6 +20,7 @@ import demoty_handler
 import file_downloader
 import instagram_handler
 import ninegag_handler
+import tiktok_handler
 import twitter_handler
 
 
@@ -54,7 +55,7 @@ SITE_REGEXES = {
     "instagram": "((http(s)?://)|^| )(www.)?instagram.com",
     "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org",
     "demoty": "((http(s)?://)|^| )(www.|m.)?demotywatory.pl",
-    "tiktok": "((http(s)?://)|^| )(www.|vm.)?tiktok.com",
+    "tiktok": "((http(s)?://)|^| )(www.|vm.|m.)?tiktok.com",
 }
 
 instagram_client = Client()
@@ -83,6 +84,7 @@ def send_welcome(message):
 @bot.message_handler(regexp=SITE_REGEXES['instagram'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 @bot.message_handler(regexp=SITE_REGEXES['booru'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 @bot.message_handler(regexp=SITE_REGEXES['demoty'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=SITE_REGEXES['tiktok'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
@@ -154,6 +156,28 @@ def handle_supported_site(message):
         else:
             print("Can't handle demotywatory link: ")
             print(*link, sep="?")
+
+    r = re.compile(SITE_REGEXES['tiktok'])
+    ttLinks = list(filter(r.match, msgContent))
+    for link in ttLinks:
+        link = link.split("?")  # we don't need parameters after ?
+        try:
+            handler_response = tiktok_handler.handle_url(link[0])
+            if "type" in handler_response:
+                send_post_to_tg(message, handler_response)
+            else:
+                respond_to_tiktok_links_with_fxtiktok(message, link[0])
+                print("Can't handle instagram link: ")
+                print(*link, sep="?")
+                print(handler_response)
+        except Exception as e:
+            print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
+            traceback.print_exception(type(e), e, e.__traceback__)
+            print()
+            print("Can't handle instagram link: ")
+            print(*link, sep="?")
+            print("Falling back to FxTikTok")
+            respond_to_tiktok_links_with_fxtiktok(message, link[0])
 
 
 @bot.message_handler(regexp="^\s*(>>|»)\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
@@ -525,31 +549,28 @@ def send_text_post(orig_tg_msg, caption, msg_to_reply_to):
     return sent_message
 
 
-@bot.message_handler(regexp=SITE_REGEXES['tiktok'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-def respond_to_tiktok_links_with_fxtiktok(message):
-    # Maybe someday I will add native support for tiktok links
-    # as for now response with FxTikTok embed is a good enough solution
+def respond_to_tiktok_links_with_fxtiktok(message, link):
+    # Workaround when native TikTok support (or TikWM) doesn't work
     # FxTikTok (https://tfxktok.com/) is run by Allan Fernando
-    msgContent = message.text.split()
-    r = re.compile(SITE_REGEXES['tiktok'])
-    tiktokLinks = list(filter(r.match, msgContent))
-    for link in tiktokLinks:
-        link = link.split("?")  # we don't need parameters after ?
-        fixedLink = link[0].replace("tiktok.com/", "tfxktok.com/")
-        responseMsg = "[ㅤ](" + fixedLink + ")"
-        bot.reply_to(message, responseMsg)
+    fixedLink = link.replace("tiktok.com/", "tfxktok.com/")
+    # I have noticed that telegram sometimes deletes messages with just a "ㅤ" character
+    # and as this is a fallback solution, I'm not gonna bother
+    # responseMsg = "[ㅤ](" + fixedLink + ")"
+    bot.reply_to(message, escape_markdown(fixedLink))
 
 
 def respond_to_ig_link_with_instafix(original_message, link):
-    # Workaround when Instagrapi (or my ig session/account) is not working
+    # Workaround when Instagrapi (or my ig session/account) doesn't work
     # InstaFix (https://github.com/Wikidepia/InstaFix)
     # FxInstagram (https://xnstagram.com/) is run by Allan Fernando
     if USE_INSTAFIX == True:
         fixedLink = link.replace("instagram.com/", "ddinstagram.com/")
     else:
         fixedLink = link.replace("instagram.com/", "xnstagram.com/")
-    responseMsg = "[ㅤ](" + fixedLink + ")"
-    bot.reply_to(original_message, responseMsg)
+    # I have noticed that telegram sometimes deletes messages with just a "ㅤ" character
+    # and as this is a fallback solution, I'm not gonna bother
+    # responseMsg = "[ㅤ](" + fixedLink + ")"
+    bot.reply_to(original_message, escape_markdown(fixedLink))
 
 
 @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
