@@ -10,7 +10,7 @@ import file_downloader
 CONVERT_WEBM_VIDEO = False
 
 
-def handle_url(link):
+def handle_url(link, allow_nsfw=True, spoil_nsfw=True):
     headers = {'User-Agent': "Telegram Social Media Downloader Bot"}
 
     link_parts = link.split('/')
@@ -41,7 +41,7 @@ def handle_url(link):
             "https://" + domain + "/api/v1/json/images/" + post_number, headers=headers)
         if response.status_code == 200:
             result = json.loads(response.text)
-            return handle_image(result['image'], domain)
+            return handle_image(result['image'], domain, allow_nsfw, spoil_nsfw)
         else:
             print("Couldn't get image from url (code=" +
                   str(response.status_code) + "): " + link)
@@ -55,10 +55,19 @@ def handle_url(link):
         return {}
 
 
-def handle_image(booru_image, domain):
+def handle_image(booru_image, domain, allow_nsfw=True, spoil_nsfw=True):
     return_data = {}
     return_data['site'] = "booru"
     return_data['id'] = booru_image['id']
+
+    if not allow_nsfw and any(tag in booru_image['tags'] for tag in ["explicit", "grimdark", "grotesque", "questionable"]):
+        return_data['type'] = "text"
+        return_data['text'] = (f"The requested image ({booru_image['id']}) is NSFW. "
+                               "If you want to download it use >>? or >>!.\n\n"
+                               ">>? will send the image with a spoiler.\n"
+                               ">>! will send the image directly.")
+        return_data['url'] = ""
+        return return_data
 
     author = check_if_author_known(booru_image['tags'])
     if author:
@@ -91,7 +100,10 @@ def handle_image(booru_image, domain):
             return_data['text'] = "Unknown image format: " + \
                 booru_image['format'] + "\n" + return_data['text']
 
-    return_data['spoiler'] = booru_image['spoilered']
+    if spoil_nsfw:
+        return_data['spoiler'] = booru_image['spoilered']
+    else:
+        return_data['spoiler'] = False
 
     return return_data
 

@@ -180,12 +180,24 @@ def handle_supported_site(message):
             respond_to_tiktok_links_with_fxtiktok(message, link[0])
 
 
-@bot.message_handler(regexp="^\s*(>>|»)\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 def handle_derpibooru_magic_character_request(message):
     msg_text = message.text.strip()
     msg_text = msg_text.lstrip(">>").lstrip("»")
-    handler_response = booru_handler.handle_url(
-        "https://derpibooru.org/{}".format(msg_text))
+
+    if msg_text.startswith("!"):
+        allow_nsfw = True
+        dont_spoil_nsfw = False
+        handler_response = booru_handler.handle_url(
+            "https://derpibooru.org/{}".format(msg_text.lstrip("!")), allow_nsfw, dont_spoil_nsfw)
+    elif msg_text.startswith("?"):
+        handler_response = booru_handler.handle_url(
+            "https://derpibooru.org/{}".format(msg_text.lstrip("?")))
+    else:
+        dont_allow_nsfw = False
+        handler_response = booru_handler.handle_url(
+            "https://derpibooru.org/{}".format(msg_text), dont_allow_nsfw)
+
     if "type" in handler_response:
         send_post_to_tg(message, handler_response)
     else:
