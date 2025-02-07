@@ -7,6 +7,7 @@ import signal
 import sys
 import time
 import traceback
+from enum import Enum
 
 import telebot
 from instagrapi import Client
@@ -28,6 +29,12 @@ class Caption:
     def __init__(self, short, long):
         self.short = short
         self.long = long
+
+
+class OverrideSpoiler(Enum):
+    NO_OVERRIDE = 0
+    SPOILER = 1
+    NO_SPOILER = 2
 
 
 me = singleton.SingleInstance()  # will sys.exit(-1) if other instance is running
@@ -88,6 +95,13 @@ def send_welcome(message):
 def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
+
+    overrideSpoiler = OverrideSpoiler.NO_OVERRIDE
+    if "BBspoiler=True" in message.text:
+        overrideSpoiler = OverrideSpoiler.SPOILER
+    elif "BBspoiler=False" in message.text:
+        overrideSpoiler = OverrideSpoiler.NO_SPOILER
+
     msgContent = message.text.split()
 
     r = re.compile(SITE_REGEXES['9gag'])
@@ -96,6 +110,8 @@ def handle_supported_site(message):
         link = link.split("?")  # we don't need parameters after ?
         handler_response = ninegag_handler.handle_url(link[0])
         if "type" in handler_response:
+            if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
+                handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle 9gag link: ")
@@ -107,6 +123,8 @@ def handle_supported_site(message):
         link = link.split("?")  # we don't need parameters after ?
         handler_response = twitter_handler.handle_url(link[0])
         if "type" in handler_response:
+            if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
+                handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle twitter link: ")
@@ -120,6 +138,8 @@ def handle_supported_site(message):
             handler_response = instagram_handler.handle_url(
                 instagram_client, link[0])
             if "type" in handler_response:
+                if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
+                    handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
                 send_post_to_tg(message, handler_response)
             else:
                 respond_to_ig_link_with_instafix(message, link[0])
@@ -141,6 +161,8 @@ def handle_supported_site(message):
         link = link.split("?")  # we don't need parameters after ?
         handler_response = booru_handler.handle_url(link[0])
         if "type" in handler_response:
+            if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
+                handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle *booru link: ")
@@ -152,6 +174,8 @@ def handle_supported_site(message):
         link = link.split("?")  # we don't need parameters after ?
         handler_response = demoty_handler.handle_url(link[0])
         if "type" in handler_response:
+            if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
+                handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle demotywatory link: ")
@@ -164,6 +188,8 @@ def handle_supported_site(message):
         try:
             handler_response = tiktok_handler.handle_url(link[0])
             if "type" in handler_response:
+                if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
+                    handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
                 send_post_to_tg(message, handler_response)
             else:
                 respond_to_tiktok_links_with_fxtiktok(message, link[0])
