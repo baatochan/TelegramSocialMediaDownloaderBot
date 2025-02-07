@@ -102,6 +102,10 @@ def handle_supported_site(message):
     elif "BBspoiler=False" in message.text:
         overrideSpoiler = OverrideSpoiler.NO_SPOILER
 
+    removeDescription = False
+    if "BBnoDesc=True" in message.text:
+        removeDescription = True
+
     msgContent = message.text.split()
 
     r = re.compile(SITE_REGEXES['9gag'])
@@ -112,6 +116,8 @@ def handle_supported_site(message):
         if "type" in handler_response:
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
+            if removeDescription:
+                handler_response['text'] = ""
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle 9gag link: ")
@@ -125,6 +131,8 @@ def handle_supported_site(message):
         if "type" in handler_response:
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
+            if removeDescription:
+                handler_response['text'] = ""
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle twitter link: ")
@@ -140,6 +148,8 @@ def handle_supported_site(message):
             if "type" in handler_response:
                 if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                     handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
+                if removeDescription:
+                    handler_response['text'] = ""
                 send_post_to_tg(message, handler_response)
             else:
                 respond_to_ig_link_with_instafix(message, link[0])
@@ -163,6 +173,8 @@ def handle_supported_site(message):
         if "type" in handler_response:
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
+            if removeDescription:
+                handler_response['text'] = ""
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle *booru link: ")
@@ -176,6 +188,8 @@ def handle_supported_site(message):
         if "type" in handler_response:
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
+            if removeDescription:
+                handler_response['text'] = ""
             send_post_to_tg(message, handler_response)
         else:
             print("Can't handle demotywatory link: ")
@@ -190,6 +204,8 @@ def handle_supported_site(message):
             if "type" in handler_response:
                 if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                     handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
+                if removeDescription:
+                    handler_response['text'] = ""
                 send_post_to_tg(message, handler_response)
             else:
                 respond_to_tiktok_links_with_fxtiktok(message, link[0])
