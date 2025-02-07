@@ -65,8 +65,7 @@ def handle_image(booru_image, domain):
         return_data['author'] = author
 
     return_data['text'] = booru_image['description']
-    return_data['url'] = "https://" + domain + \
-        "/images/" + str(booru_image['id'])
+    return_data['url'] = "https://" + domain + "/" + str(booru_image['id'])
 
     return_data['type'] = "media"
 
