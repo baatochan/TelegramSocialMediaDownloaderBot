@@ -11,6 +11,7 @@ from enum import Enum
 
 import telebot
 from instagrapi import Client
+from praw import Reddit
 from telebot.formatting import escape_markdown
 from telebot.types import (InputMediaPhoto, InputMediaVideo,
                            LinkPreviewOptions, ReplyParameters)
@@ -21,6 +22,7 @@ import demoty_handler
 import file_downloader
 import instagram_handler
 import ninegag_handler
+import reddit_handler
 import tiktok_handler
 import twitter_handler
 
@@ -63,11 +65,18 @@ SITE_REGEXES = {
     "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org/.+",
     "demoty": "((http(s)?://)|^| )(www.|m.)?demotywatory.pl/.+",
     "tiktok": "((http(s)?://)|^| )(www.|vm.|m.)?tiktok.com/.+",
+    "reddit": "((http(s)?://)|^| )(www.)?(redd.it|reddit.com)/.+",
 }
 
 instagram_client = Client()
 
 USE_INSTAFIX = True
+
+reddit_client = Reddit(
+    client_id=config['reddit']['client_id'],
+    client_secret=config['reddit']['client_secret'],
+    user_agent=config['reddit']['user_agent'],
+)
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -92,6 +101,7 @@ def send_welcome(message):
 @bot.message_handler(regexp=SITE_REGEXES['booru'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 @bot.message_handler(regexp=SITE_REGEXES['demoty'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 @bot.message_handler(regexp=SITE_REGEXES['tiktok'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=SITE_REGEXES['reddit'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
@@ -220,6 +230,21 @@ def handle_supported_site(message):
             print(*link, sep="?")
             print("Falling back to FxTikTok")
             respond_to_tiktok_links_with_fxtiktok(message, link[0])
+
+    r = re.compile(SITE_REGEXES['reddit'])
+    redditLinks = list(filter(r.match, msgContent))
+    for link in redditLinks:
+        link = link.split("?")  # we don't need parameters after ?
+        handler_response = reddit_handler.handle_url(reddit_client, link[0])
+        if "type" in handler_response:
+            if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
+                handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
+            if removeDescription:
+                handler_response['text'] = ""
+            send_post_to_tg(message, handler_response)
+        else:
+            print("Can't handle reddit link: ")
+            print(*link, sep="?")
 
 
 @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
@@ -689,6 +714,8 @@ else:
     instagram_handler.set_basic_settings(instagram_client)
     print("Started an ig client without an account with following settings:")
 print(instagram_client.get_settings())
+print("Started a reddit client successfully. Client in read_only mode: {}".format(
+    reddit_client.read_only))
 
 while True:
     try:

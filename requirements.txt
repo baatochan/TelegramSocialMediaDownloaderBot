@@ -3,5 +3,6 @@ getuseragent
 beautifulsoup4
 tendo
 instagrapi
+praw
 # for instagrapi
 pillow

@@ -14,3 +14,11 @@ owner_username = @example
 do_login = False
 username = example
 password = example
+
+[reddit]
+# credentials for a reddit script app, you need to create your own app to access Reddit API with praw
+# (more on that https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example#first-steps)
+client_id = "example"
+client_secret = "example"
+# UserAgent used when contacting Reddit (YOU HAVE TO CHANGE IT)
+user_agent = "linux:myPerfectApp:v1 (by: u/example)"
