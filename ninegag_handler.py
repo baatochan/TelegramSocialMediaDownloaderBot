@@ -21,9 +21,9 @@ def handle_url(link, use_selenium=True):
             if "window._config = JSON.parse" in script.get_text():
                 script_json_text = script.get_text()
                 # Safely handle backslahes in the JSON text
-                script_json_text = re.sub(r'\\\\', r'\\', script_json_text)
                 script_json_text = re.sub(
                     r'(?<!\\)\\(?!\\)', '', script_json_text)
+                script_json_text = re.sub(r'\\\\', r'\\', script_json_text)
                 # remove beginning and the end of the json to extract only json content
                 script_json_text = script_json_text.replace(
                     "window._config = JSON.parse(\"", "")
