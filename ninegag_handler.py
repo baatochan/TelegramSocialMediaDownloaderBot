@@ -20,14 +20,17 @@ def handle_url(link, use_selenium=True):
         for script in soup.find_all('script', attrs={"type": "text/javascript"}):
             if "window._config = JSON.parse" in script.get_text():
                 script_json_text = script.get_text()
-                # Safely handle backslahes in the JSON text
+
+                # remove single backslashes while keeping double backslashes as single ones
                 script_json_text = re.sub(
                     r'(?<!\\)\\(?!\\)', '', script_json_text)
-                script_json_text = re.sub(r'\\\\', r'\\', script_json_text)
-                # remove beginning and the end of the json to extract only json content
+                script_json_text = script_json_text.replace("\\\\", "\\")
+
+                # remove beginning and end of the json to extract only json content
                 script_json_text = script_json_text.replace(
                     "window._config = JSON.parse(\"", "")
                 script_json_text = script_json_text.replace("\");", "")
+
                 script_json_content = json.loads(script_json_text)
                 return check_media_type(script_json_content['data']['post'])
     except Exception as e:
