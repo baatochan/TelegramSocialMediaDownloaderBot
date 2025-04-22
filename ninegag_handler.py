@@ -19,20 +19,19 @@ def handle_url(link, use_selenium=True):
         soup = BeautifulSoup(page_source, 'html.parser')
         for script in soup.find_all('script', attrs={"type": "text/javascript"}):
             if "window._config = JSON.parse" in script.get_text():
-                script_json_text = script.get_text()
+                json_text = script.get_text()
 
                 # remove single backslashes while keeping double backslashes as single ones
-                script_json_text = re.sub(
-                    r'(?<!\\)\\(?!\\)', '', script_json_text)
-                script_json_text = script_json_text.replace("\\\\", "\\")
+                json_text = re.sub(r'(?<!\\)\\(?!\\)', '', json_text)
+                json_text = json_text.replace("\\\\", "\\")
 
                 # remove beginning and end of the json to extract only json content
-                script_json_text = script_json_text.replace(
+                json_text = json_text.replace(
                     "window._config = JSON.parse(\"", "")
-                script_json_text = script_json_text.replace("\");", "")
+                json_text = json_text.replace("\");", "")
 
-                script_json_content = json.loads(script_json_text)
-                return check_media_type(script_json_content['data']['post'])
+                loaded_json = json.loads(json_text)
+                return check_media_type(loaded_json['data']['post'])
     except Exception as e:
         print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
         traceback.print_exception(type(e), e, e.__traceback__)
