@@ -114,7 +114,8 @@ def handle_supported_site(message):
     ninegagLinks = list(filter(r.match, msgContent))
     for link in ninegagLinks:
         link = link.split("?")  # we don't need parameters after ?
-        handler_response = ninegag_handler.handle_url(link[0], SELENIUM_FOR_9GAG)
+        handler_response = ninegag_handler.handle_url(
+            link[0], SELENIUM_FOR_9GAG)
         if "type" in handler_response:
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
