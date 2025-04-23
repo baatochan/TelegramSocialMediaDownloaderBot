@@ -269,6 +269,7 @@ def prepare_caption(handler_response):
     long_caption = ""
     short_caption = ""
     if "text" in handler_response:
+        handler_response['text'] = remove_hashtags(handler_response['text'])
         long_caption += handler_response['text']
     if "author" in handler_response:
         long_caption += "\n\nby: " + handler_response['author']
@@ -286,6 +287,15 @@ def prepare_caption(handler_response):
         long_caption += parse_community_notes(handler_response)
 
     return Caption(short_caption, long_caption)
+
+
+def remove_hashtags(text):
+    # Remove hashtags when there are 4 or more grouped together
+    # # and eveyrthing not being a whitespace is considered a signle hashtag
+    text = re.sub(r'((#[^\s]+)\s+){3,}(#[^\s]+)', '', text, flags=re.UNICODE)
+    # Removing hashtags may leave some empty lines so we need to remove them
+    text = text.strip()
+    return text
 
 
 def parse_community_notes(handler_response):
