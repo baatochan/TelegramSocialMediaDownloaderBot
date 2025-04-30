@@ -35,15 +35,7 @@ def prepare_metadata(output_filename, info_dict):
     return_data['author'] = info_dict['uploader'] + \
         " (" + info_dict['uploader_id'] + ")"
 
-    print("DEBUG: \n" + str(info_dict['title']) + "\n" + str(info_dict['fulltitle']) +
-          "\n" + str(info_dict['description']) + "\n" + str(info_dict['webpage_url']))
-
-    if (info_dict['description'].startswith(info_dict['title'])):
-        return_data['text'] = info_dict['description']
-    else:
-        return_data['text'] = info_dict['title'] + \
-            "\n\n" + str(info_dict['description'])
-
+    return_data['text'] = info_dict['fulltitle']
     return_data['spoiler'] = False
     return_data['media'] = [[output_filename, "video_file"]]
     return_data['type'] = "media"
