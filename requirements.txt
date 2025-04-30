@@ -4,5 +4,7 @@ beautifulsoup4
 tendo
 instagrapi
 selenium
+yt-dlp
+ffmpeg-python # yt-dlp additionally requires standalone ffmpeg
 # for instagrapi
 pillow
