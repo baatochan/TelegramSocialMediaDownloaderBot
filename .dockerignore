@@ -1,0 +1,5 @@
+logs/*.log
+temp
+venv
+__pycache__
+.git

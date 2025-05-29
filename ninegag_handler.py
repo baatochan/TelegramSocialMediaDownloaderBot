@@ -22,7 +22,7 @@ def handle_url(link, use_selenium=True):
                 json_text = script.get_text()
 
                 # remove single backslashes while keeping double backslashes as single ones
-                json_text = re.sub(r'(?<!\\)\\(?!\\)', '', json_text)
+                json_text = re.sub(r'\\(?!\\)', '', json_text)
                 json_text = json_text.replace("\\\\", "\\")
 
                 # remove beginning and end of the json to extract only json content
