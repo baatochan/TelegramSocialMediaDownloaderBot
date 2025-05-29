@@ -19,3 +19,7 @@ password = example
 # Selenium seems to be required for 9gag scrapping to work, however as it is resource intensive some may want to disable it.
 # When disabled it uses python requests to connect to 9gag which seems to be blocked by captcha
 use_selenium = True
+
+[youtube]
+# yt-dlp espesially with ffmpeg reencoding is very resource intensive so there is an option to disable yt support at all
+enabled = True

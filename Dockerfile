@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     libpangocairo-1.0-0 \
     libatk1.0-0 \
     libgtk-3-0 \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir -r requirements.txt

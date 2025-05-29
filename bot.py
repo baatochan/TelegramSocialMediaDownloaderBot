@@ -23,6 +23,7 @@ import instagram_handler
 import ninegag_handler
 import tiktok_handler
 import twitter_handler
+import youtube_handler
 
 
 class Caption:
@@ -50,6 +51,7 @@ ALLOWED_USERS = json.loads(config['config']['allowed_users'])
 ALLOWED_CHATS = json.loads(config['config']['allowed_chats'])
 
 SELENIUM_FOR_9GAG = config['9gag'].getboolean('use_selenium')
+YOUTUBE_SUPPORT_ENABLED = config['youtube'].getboolean('enabled')
 
 bot = telebot.TeleBot(config['config']['token'])
 BOT_ID = bot.get_me().id
@@ -65,6 +67,7 @@ SITE_REGEXES = {
     "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org/.+",
     "demoty": "((http(s)?://)|^| )(www.|m.)?demotywatory.pl/.+",
     "tiktok": "((http(s)?://)|^| )(www.|vm.|m.)?tiktok.com/.+",
+    "youtube": "((http(s)?://)|^| )(www.|m.)?(youtube(-nocookie)?.com|youtu.be)/.+",
 }
 
 instagram_client = Client()
@@ -94,6 +97,7 @@ def send_welcome(message):
 @bot.message_handler(regexp=SITE_REGEXES['booru'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 @bot.message_handler(regexp=SITE_REGEXES['demoty'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 @bot.message_handler(regexp=SITE_REGEXES['tiktok'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=SITE_REGEXES['youtube'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
@@ -223,6 +227,18 @@ def handle_supported_site(message):
             print(*link, sep="?")
             print("Falling back to FxTikTok")
             respond_to_tiktok_links_with_fxtiktok(message, link[0])
+
+    if YOUTUBE_SUPPORT_ENABLED:
+        r = re.compile(SITE_REGEXES['youtube'])
+        ytLinks = list(filter(r.match, msgContent))
+        for link in ytLinks:
+            handler_response = youtube_handler.handle_url(link)
+            if "type" in handler_response:
+                if removeDescription:
+                    handler_response['text'] = ""
+                send_post_to_tg(message, handler_response)
+            else:
+                print("Can't handle youtube link: " + str(link))
 
 
 @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
