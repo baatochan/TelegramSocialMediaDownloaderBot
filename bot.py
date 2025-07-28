@@ -7,6 +7,7 @@ import signal
 import sys
 import time
 import traceback
+import requests
 from enum import Enum
 
 import telebot
@@ -24,6 +25,7 @@ import ninegag_handler
 import tiktok_handler
 import twitter_handler
 import youtube_handler
+import mastodon_handler
 
 
 class Caption:
@@ -656,10 +658,22 @@ def respond_to_ig_link_with_instafix(original_message, link):
     bot.reply_to(original_message, escape_markdown(fixedLink))
 
 
-@bot.message_handler(regexp="http", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-def handle_link(message):
-    if message.chat.id not in ALLOWED_CHATS:
-        bot.reply_to(message, "This site is not supported yet\.")
+@bot.message_handler(content_types=['text'])
+def handle_text_message(message):
+    # Skip if already handled by other regexes
+    for regex in SITE_REGEXES.values():
+        if re.search(regex, message.text):
+            return
+    handle_unknown_link(message)
+
+
+def handle_unknown_link(message):
+    links = mastodon_handler.extract_links(message.text)
+    for link in links:
+        if mastodon_handler.is_mastodon_link(link):
+            response = mastodon_handler.handle_url(link)
+            if response is not None:
+                send_post_to_tg(message, response)
 
 
 @bot.message_handler(regexp="UseInstafix = True", func=lambda message: message.from_user.id == ALLOWED_USERS[0])
