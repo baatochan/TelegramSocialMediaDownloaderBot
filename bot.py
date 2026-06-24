@@ -22,9 +22,9 @@ from handlers import (
     instagram_handler,
     ninegag_handler,
     tiktok_handler,
-    twitter_handler,
     youtube_handler,
 )
+from handlers.twitter_handler import TwitterHandler
 import file_downloader
 
 
@@ -73,6 +73,7 @@ SITE_REGEXES = {
 }
 
 instagram_client = Client()
+twitter_handler = TwitterHandler()
 
 USE_INSTAFIX = True
 
@@ -136,8 +137,9 @@ def handle_supported_site(message):
     twitterLinks = list(filter(r.match, msgContent))
     for link in twitterLinks:
         link = link.split("?")  # we don't need parameters after ?
-        handler_response = twitter_handler.handle_url(link[0])
-        if "type" in handler_response:
+        post_data = twitter_handler.handle(link[0])
+        if post_data is not None:
+            handler_response = post_data.to_legacy_dict()
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             if removeDescription:
@@ -363,9 +365,10 @@ def handle_reply_quote_post(orig_tg_msg, handler_response, caption):
 
     if handler_response['quote']:
         if handle_quote:
-            handler_response_for_quote_tweet = twitter_handler.handle_url(
+            post_data_for_quote_tweet = twitter_handler.handle(
                 handler_response['quote_url'])
-            if "type" in handler_response_for_quote_tweet:
+            if post_data_for_quote_tweet is not None:
+                handler_response_for_quote_tweet = post_data_for_quote_tweet.to_legacy_dict()
                 return_msg = send_post_to_tg(
                     orig_tg_msg, handler_response_for_quote_tweet)
             else:
@@ -379,9 +382,10 @@ def handle_reply_quote_post(orig_tg_msg, handler_response, caption):
 
     if handler_response['reply']:
         if handle_reply:
-            handler_response_for_reply_to_tweet = twitter_handler.handle_url(
+            post_data_for_reply_to_tweet = twitter_handler.handle(
                 handler_response['reply_url'])
-            if "type" in handler_response_for_reply_to_tweet:
+            if post_data_for_reply_to_tweet is not None:
+                handler_response_for_reply_to_tweet = post_data_for_reply_to_tweet.to_legacy_dict()
                 return_msg = send_post_to_tg(
                     orig_tg_msg, handler_response_for_reply_to_tweet)
             else:
