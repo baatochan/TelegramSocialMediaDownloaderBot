@@ -16,14 +16,16 @@ from telebot.types import (InputMediaPhoto, InputMediaVideo,
                            LinkPreviewOptions, ReplyParameters)
 from tendo import singleton
 
-import booru_handler
-import demoty_handler
+from handlers import (
+    booru_handler,
+    demoty_handler,
+    instagram_handler,
+    ninegag_handler,
+    tiktok_handler,
+    twitter_handler,
+    youtube_handler,
+)
 import file_downloader
-import instagram_handler
-import ninegag_handler
-import tiktok_handler
-import twitter_handler
-import youtube_handler
 
 
 class Caption:
