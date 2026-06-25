@@ -43,24 +43,34 @@ class TwitterHandler(MediaHandler):
             url=tweet['url'],
         )
 
-        if "media" in tweet and tweet['media'] is not None:
-            if "all" in tweet['media'] and tweet['media']['all'] is not None:
-                post_data.post_type = "media"
-                for media in tweet['media']['all']:
-                    post_data.media.append([media['url'], media['type']])
-                if "possibly_sensitive" in tweet and tweet['possibly_sensitive'] is not None:
-                    post_data.spoiler = tweet['possibly_sensitive']
-            else:
-                post_data.post_type = "text"
-                # When media is present but media.all is not, then there has to be
-                # media.external which is an embed for external media such as yt.
-                # The link to that video is already added to the post text by API.
+        self._check_media(post_data, tweet)
 
         self._get_reply_quote_status(post_data, tweet)
         self._check_if_poll(post_data, tweet)
         self._check_community_notes(post_data, tweet)
 
         return post_data
+
+    def _check_media(self, post_data, tweet):
+        media = tweet.get("media")
+        if media is None:
+            return
+
+        all_media = media.get("all")
+        if all_media is None:
+            # When media is present but media.all is not, then there has to be
+            # media.external which is an embed for external media such as yt.
+            # The link to that video is already added to the post text by API.
+            post_data.post_type = "text"
+            return
+
+        post_data.post_type = "media"
+        for media_item in all_media:
+            post_data.media.append([media_item['url'], media_item['type']])
+
+        possibly_sensitive = tweet.get("possibly_sensitive")
+        if possibly_sensitive is not None:
+            post_data.spoiler = possibly_sensitive
 
     def _get_reply_quote_status(self, post_data, tweet):
         quote = tweet.get("quote")
