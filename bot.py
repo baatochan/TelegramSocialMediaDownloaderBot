@@ -373,49 +373,49 @@ def prepare_twitter_send_context(orig_tg_msg, handler_response):
 
     if handler_response['quote']:
         if handle_quote:
-            post_data_for_quote_tweet = twitter_handler.handle(
-                handler_response['quote_url'])
-            if post_data_for_quote_tweet is not None:
-                handler_response_for_quote_tweet = post_data_for_quote_tweet.to_legacy_dict()
-                related_msg_to_reply_to, related_caption_suffix = prepare_twitter_send_context(
-                    orig_tg_msg, handler_response_for_quote_tweet)
-                msg_to_reply_to = send_post_to_tg(
-                    orig_tg_msg,
-                    handler_response_for_quote_tweet,
-                    msg_to_reply_to=related_msg_to_reply_to,
-                    caption_suffix=related_caption_suffix,
-                )
-            else:
-                print("Can't handle twitter link: " +
-                      handler_response['quote_url'])
-                caption_suffix = add_info_about_quote_to_caption(
-                    caption_suffix, handler_response['quote_url'])
+            msg_to_reply_to, caption_suffix = resolve_and_send_related_twitter_post(
+                orig_tg_msg,
+                handler_response['quote_url'],
+                msg_to_reply_to,
+                caption_suffix,
+                add_info_about_quote_to_caption,
+            )
         else:
             caption_suffix = add_info_about_quote_to_caption(
                 caption_suffix, handler_response['quote_url'])
 
     if handler_response['reply']:
         if handle_reply:
-            post_data_for_reply_to_tweet = twitter_handler.handle(
-                handler_response['reply_url'])
-            if post_data_for_reply_to_tweet is not None:
-                handler_response_for_reply_to_tweet = post_data_for_reply_to_tweet.to_legacy_dict()
-                related_msg_to_reply_to, related_caption_suffix = prepare_twitter_send_context(
-                    orig_tg_msg, handler_response_for_reply_to_tweet)
-                msg_to_reply_to = send_post_to_tg(
-                    orig_tg_msg,
-                    handler_response_for_reply_to_tweet,
-                    msg_to_reply_to=related_msg_to_reply_to,
-                    caption_suffix=related_caption_suffix,
-                )
-            else:
-                print("Can't handle twitter link: " +
-                      handler_response['reply_url'])
-                caption_suffix = add_info_about_reply_to_caption(
-                    caption_suffix, handler_response['reply_url'])
+            msg_to_reply_to, caption_suffix = resolve_and_send_related_twitter_post(
+                orig_tg_msg,
+                handler_response['reply_url'],
+                msg_to_reply_to,
+                caption_suffix,
+                add_info_about_reply_to_caption,
+            )
         else:
             caption_suffix = add_info_about_reply_to_caption(
                 caption_suffix, handler_response['reply_url'])
+
+    return msg_to_reply_to, caption_suffix
+
+
+def resolve_and_send_related_twitter_post(orig_tg_msg, related_url, msg_to_reply_to, caption_suffix, add_info_to_caption):
+    post_data_for_related_tweet = twitter_handler.handle(related_url)
+    if post_data_for_related_tweet is None:
+        print("Can't handle twitter link: " + related_url)
+        caption_suffix = add_info_to_caption(caption_suffix, related_url)
+        return msg_to_reply_to, caption_suffix
+
+    handler_response_for_related_tweet = post_data_for_related_tweet.to_legacy_dict()
+    related_msg_to_reply_to, related_caption_suffix = prepare_twitter_send_context(
+        orig_tg_msg, handler_response_for_related_tweet)
+    msg_to_reply_to = send_post_to_tg(
+        orig_tg_msg,
+        handler_response_for_related_tweet,
+        msg_to_reply_to=related_msg_to_reply_to,
+        caption_suffix=related_caption_suffix,
+    )
 
     return msg_to_reply_to, caption_suffix
 
