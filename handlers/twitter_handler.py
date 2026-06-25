@@ -58,47 +58,52 @@ class TwitterHandler(MediaHandler):
 
         self._get_reply_quote_status(post_data, tweet)
         self._check_if_poll(post_data, tweet)
-        if "community_note" in tweet and tweet['community_note'] is not None:
-            self._check_community_notes(post_data, tweet)
+        self._check_community_notes(post_data, tweet)
 
         return post_data
 
     def _get_reply_quote_status(self, post_data, tweet):
-        if "quote" in tweet and tweet['quote'] is not None:
-            post_data.quote = True
-            post_data.quote_url = tweet['quote']['url']
-        else:
-            post_data.quote = False
+        quote = tweet.get("quote")
+        post_data.quote = quote is not None
+        if quote is not None:
+            post_data.quote_url = quote['url']
 
-        if "replying_to" in tweet and tweet['replying_to'] is not None:
-            if "replying_to_status" in tweet and tweet['replying_to_status'] is not None:
-                post_data.reply = True
-                post_data.reply_url = "https://twitter.com/" + \
-                    tweet['replying_to'] + "/status/" + \
-                    tweet['replying_to_status']
-            else:
-                post_data.reply = False
-        else:
-            post_data.reply = False
+        replying_to = tweet.get("replying_to")
+        replying_to_status = tweet.get("replying_to_status")
+        post_data.reply = replying_to is not None and replying_to_status is not None
+        if post_data.reply:
+            post_data.reply_url = "https://twitter.com/" + \
+                replying_to + "/status/" + replying_to_status
 
     def _check_if_poll(self, post_data, tweet):
-        if "poll" in tweet and tweet['poll'] is not None:
-            post_data.poll = True
-            for choice in tweet['poll']['choices']:
-                post_data.text += "\n * " + \
-                    choice['label'] + " (" + str(choice['percentage']) + "%)"
-        else:
+        poll = tweet.get("poll")
+        if poll is None:
             post_data.poll = False
+            return
+
+        post_data.poll = True
+        for choice in poll['choices']:
+            post_data.text += "\n * " + \
+                choice['label'] + " (" + str(choice['percentage']) + "%)"
 
     def _check_community_notes(self, post_data, tweet):
+        community_note = tweet.get("community_note")
+        if community_note is None:
+            post_data.community_note = False
+            return
+
         post_data.community_note = True
-        post_data.community_note_text = tweet['community_note']['text']
-        if "entities" in tweet['community_note']:
-            for entity in tweet['community_note']['entities']:
-                post_data.community_note_links.append(
-                    {
-                        "from": entity['fromIndex'],
-                        "to": entity['toIndex'],
-                        "url": entity['ref']['url'],
-                    }
-                )
+        post_data.community_note_text = community_note['text']
+
+        entities = community_note.get("entities")
+        if entities is None:
+            return
+
+        for entity in entities:
+            post_data.community_note_links.append(
+                {
+                    "from": entity['fromIndex'],
+                    "to": entity['toIndex'],
+                    "url": entity['ref']['url'],
+                }
+            )
