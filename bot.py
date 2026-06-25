@@ -144,7 +144,14 @@ def handle_supported_site(message):
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             if removeDescription:
                 handler_response['text'] = ""
-            send_post_to_tg(message, handler_response)
+            msg_to_reply_to, caption_suffix = prepare_twitter_send_context(
+                message, handler_response)
+            send_post_to_tg(
+                message,
+                handler_response,
+                msg_to_reply_to=msg_to_reply_to,
+                caption_suffix=caption_suffix,
+            )
         else:
             print("Can't handle twitter link: ")
             print(*link, sep="?")
@@ -269,13 +276,13 @@ def handle_derpibooru_magic_character_request(message):
         print("Can't handle derpibooru img {}".format(msg_text))
 
 
-def send_post_to_tg(orig_tg_msg, handler_response):
+def send_post_to_tg(orig_tg_msg, handler_response, msg_to_reply_to=None, caption_suffix=""):
     caption = prepare_caption(handler_response)
-    msg_to_reply_to = orig_tg_msg
+    if msg_to_reply_to is None:
+        msg_to_reply_to = orig_tg_msg
 
-    if handler_response['site'] == "twitter":
-        msg_to_reply_to, caption.long = handle_reply_quote_post(
-            orig_tg_msg, handler_response, caption.long)
+    if caption_suffix:
+        caption.long += caption_suffix
 
     match (handler_response['type']):
         case "media":
@@ -357,8 +364,9 @@ def parse_community_notes(handler_response):
     return note
 
 
-def handle_reply_quote_post(orig_tg_msg, handler_response, caption):
-    return_msg = orig_tg_msg
+def prepare_twitter_send_context(orig_tg_msg, handler_response):
+    msg_to_reply_to = orig_tg_msg
+    caption_suffix = ""
 
     handle_reply, handle_quote = check_if_reply_quote_should_be_handled(
         orig_tg_msg, handler_response)
@@ -369,16 +377,22 @@ def handle_reply_quote_post(orig_tg_msg, handler_response, caption):
                 handler_response['quote_url'])
             if post_data_for_quote_tweet is not None:
                 handler_response_for_quote_tweet = post_data_for_quote_tweet.to_legacy_dict()
-                return_msg = send_post_to_tg(
+                related_msg_to_reply_to, related_caption_suffix = prepare_twitter_send_context(
                     orig_tg_msg, handler_response_for_quote_tweet)
+                msg_to_reply_to = send_post_to_tg(
+                    orig_tg_msg,
+                    handler_response_for_quote_tweet,
+                    msg_to_reply_to=related_msg_to_reply_to,
+                    caption_suffix=related_caption_suffix,
+                )
             else:
                 print("Can't handle twitter link: " +
                       handler_response['quote_url'])
-                caption = add_info_about_quote_to_caption(
-                    caption, handler_response['quote_url'])
+                caption_suffix = add_info_about_quote_to_caption(
+                    caption_suffix, handler_response['quote_url'])
         else:
-            caption = add_info_about_quote_to_caption(
-                caption, handler_response['quote_url'])
+            caption_suffix = add_info_about_quote_to_caption(
+                caption_suffix, handler_response['quote_url'])
 
     if handler_response['reply']:
         if handle_reply:
@@ -386,18 +400,24 @@ def handle_reply_quote_post(orig_tg_msg, handler_response, caption):
                 handler_response['reply_url'])
             if post_data_for_reply_to_tweet is not None:
                 handler_response_for_reply_to_tweet = post_data_for_reply_to_tweet.to_legacy_dict()
-                return_msg = send_post_to_tg(
+                related_msg_to_reply_to, related_caption_suffix = prepare_twitter_send_context(
                     orig_tg_msg, handler_response_for_reply_to_tweet)
+                msg_to_reply_to = send_post_to_tg(
+                    orig_tg_msg,
+                    handler_response_for_reply_to_tweet,
+                    msg_to_reply_to=related_msg_to_reply_to,
+                    caption_suffix=related_caption_suffix,
+                )
             else:
                 print("Can't handle twitter link: " +
                       handler_response['reply_url'])
-                caption = add_info_about_reply_to_caption(
-                    caption, handler_response['reply_url'])
+                caption_suffix = add_info_about_reply_to_caption(
+                    caption_suffix, handler_response['reply_url'])
         else:
-            caption = add_info_about_reply_to_caption(
-                caption, handler_response['reply_url'])
+            caption_suffix = add_info_about_reply_to_caption(
+                caption_suffix, handler_response['reply_url'])
 
-    return return_msg, caption
+    return msg_to_reply_to, caption_suffix
 
 
 def check_if_reply_quote_should_be_handled(orig_tg_msg, handler_response):
