@@ -75,8 +75,6 @@ SITE_REGEXES = {
 instagram_client = Client()
 twitter_handler = TwitterHandler()
 
-USE_INSTAFIX = True
-
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -671,11 +669,7 @@ def respond_to_tiktok_links_with_fxtiktok(message, link):
 def respond_to_ig_link_with_instafix(original_message, link):
     # Workaround when Instagrapi (or my ig session/account) doesn't work
     # InstaFix (https://github.com/Wikidepia/InstaFix)
-    # FxInstagram (https://xnstagram.com/) is run by Allan Fernando
-    if USE_INSTAFIX == True:
-        fixedLink = link.replace("instagram.com/", "ddinstagram.com/")
-    else:
-        fixedLink = link.replace("instagram.com/", "xnstagram.com/")
+    fixedLink = link.replace("instagram.com/", "ddinstagram.com/")
     # I have noticed that telegram sometimes deletes messages with just a "ㅤ" character
     # and as this is a fallback solution, I'm not gonna bother
     # responseMsg = "[ㅤ](" + fixedLink + ")"
@@ -686,20 +680,6 @@ def respond_to_ig_link_with_instafix(original_message, link):
 def handle_link(message):
     if message.chat.id not in ALLOWED_CHATS:
         bot.reply_to(message, "This site is not supported yet\.")
-
-
-@bot.message_handler(regexp="UseInstafix = True", func=lambda message: message.from_user.id == ALLOWED_USERS[0])
-def set_useinstafix_true(message):
-    global USE_INSTAFIX
-    USE_INSTAFIX = True
-    bot.reply_to(message, "UseInstafix set to True\.")
-
-
-@bot.message_handler(regexp="UseInstafix = False", func=lambda message: message.from_user.id == ALLOWED_USERS[0])
-def set_useinstafix_true(message):
-    global USE_INSTAFIX
-    USE_INSTAFIX = False
-    bot.reply_to(message, "UseInstafix set to False\.")
 
 
 @bot.message_handler(regexp="test", func=lambda message: message.from_user.id in ALLOWED_USERS)
