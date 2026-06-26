@@ -168,7 +168,7 @@ def handle_supported_site(message):
                     handler_response['text'] = ""
                 send_post_to_tg(message, handler_response)
             else:
-                respond_to_ig_link_with_instafix(message, link[0])
+                respond_to_ig_link_with_zzinstagram(message, link[0])
                 print("Can't handle instagram link: ")
                 print(*link, sep="?")
                 print(handler_response)
@@ -178,8 +178,8 @@ def handle_supported_site(message):
             print()
             print("Can't handle instagram link: ")
             print(*link, sep="?")
-            print("Falling back to instafix")
-            respond_to_ig_link_with_instafix(message, link[0])
+            print("Falling back to InstaEmbedRouter")
+            respond_to_ig_link_with_zzinstagram(message, link[0])
 
     r = re.compile(SITE_REGEXES['booru'])
     booruLinks = list(filter(r.match, msgContent))
@@ -666,13 +666,10 @@ def respond_to_tiktok_links_with_fxtiktok(message, link):
     bot.reply_to(message, escape_markdown(fixedLink))
 
 
-def respond_to_ig_link_with_instafix(original_message, link):
+def respond_to_ig_link_with_zzinstagram(original_message, link):
     # Workaround when Instagrapi (or my ig session/account) doesn't work
-    # InstaFix (https://github.com/Wikidepia/InstaFix)
-    fixedLink = link.replace("instagram.com/", "ddinstagram.com/")
-    # I have noticed that telegram sometimes deletes messages with just a "ㅤ" character
-    # and as this is a fallback solution, I'm not gonna bother
-    # responseMsg = "[ㅤ](" + fixedLink + ")"
+    # InstaEmbedRouter (https://github.com/Knoppiix/InstaEmbedRouter)
+    fixedLink = link.replace("instagram.com/", "zzinstagram.com/")
     bot.reply_to(original_message, escape_markdown(fixedLink))
 
 
