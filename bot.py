@@ -24,6 +24,7 @@ from handlers import (
     tiktok_handler,
     youtube_handler,
 )
+from handlers.instagram_handler import InstagramHandler
 from handlers.twitter_handler import TwitterHandler
 import file_downloader
 
@@ -73,6 +74,7 @@ SITE_REGEXES = {
 }
 
 instagram_client = Client()
+instagram_post_handler = InstagramHandler(instagram_client)
 twitter_handler = TwitterHandler()
 
 
@@ -158,24 +160,15 @@ def handle_supported_site(message):
     igLinks = list(filter(r.match, msgContent))
     for link in igLinks:
         link = link.split("?")  # we don't need parameters after ?
-        try:
-            handler_response = instagram_handler.handle_url(
-                instagram_client, link[0])
-            if "type" in handler_response:
-                if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
-                    handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
-                if removeDescription:
-                    handler_response['text'] = ""
-                send_post_to_tg(message, handler_response)
-            else:
-                respond_to_ig_link_with_zzinstagram(message, link[0])
-                print("Can't handle instagram link: ")
-                print(*link, sep="?")
-                print(handler_response)
-        except Exception as e:
-            print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
-            traceback.print_exception(type(e), e, e.__traceback__)
-            print()
+        post_data = instagram_post_handler.handle(link[0])
+        if post_data is not None:
+            handler_response = post_data.to_legacy_dict()
+            if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
+                handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
+            if removeDescription:
+                handler_response['text'] = ""
+            send_post_to_tg(message, handler_response)
+        else:
             print("Can't handle instagram link: ")
             print(*link, sep="?")
             print("Falling back to InstaEmbedRouter")
