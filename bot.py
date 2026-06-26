@@ -18,10 +18,10 @@ from tendo import singleton
 from handlers import (
     booru_handler,
     demoty_handler,
-    ninegag_handler,
     youtube_handler,
 )
 from handlers.instagram_handler import InstagramHandler
+from handlers.ninegag_handler import NineGagHandler
 from handlers.tiktok_handler import TikTokHandler
 from handlers.twitter_handler import TwitterHandler
 import file_downloader
@@ -51,7 +51,6 @@ else:
 ALLOWED_USERS = json.loads(config['config']['allowed_users'])
 ALLOWED_CHATS = json.loads(config['config']['allowed_chats'])
 
-SELENIUM_FOR_9GAG = config['9gag'].getboolean('use_selenium')
 YOUTUBE_SUPPORT_ENABLED = config['youtube'].getboolean('enabled')
 
 bot = telebot.TeleBot(config['config']['token'])
@@ -72,6 +71,8 @@ SITE_REGEXES = {
 }
 
 instagram_handler = InstagramHandler.create_from_config(config['instagram'])
+ninegag_handler = NineGagHandler(
+    use_selenium=config['9gag'].getboolean('use_selenium'))
 tiktok_handler = TikTokHandler()
 twitter_handler = TwitterHandler()
 
@@ -119,9 +120,9 @@ def handle_supported_site(message):
     ninegagLinks = list(filter(r.match, msgContent))
     for link in ninegagLinks:
         link = link.split("?")  # we don't need parameters after ?
-        handler_response = ninegag_handler.handle_url(
-            link[0], SELENIUM_FOR_9GAG)
-        if "type" in handler_response:
+        post_data = ninegag_handler.handle(link[0])
+        if post_data is not None:
+            handler_response = post_data.to_legacy_dict()
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             if removeDescription:
