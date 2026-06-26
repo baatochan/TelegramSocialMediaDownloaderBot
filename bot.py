@@ -170,7 +170,9 @@ def handle_supported_site(message):
             print("Can't handle instagram link: ")
             print(*link, sep="?")
             print("Falling back to InstaEmbedRouter")
-            respond_to_ig_link_with_zzinstagram(message, link[0])
+            fallback = instagram_handler.handle_fallback(link[0])
+            if fallback is not None:
+                send_post_to_tg(message, fallback.to_legacy_dict())
 
     r = re.compile(SITE_REGEXES['booru'])
     booruLinks = list(filter(r.match, msgContent))
@@ -216,18 +218,22 @@ def handle_supported_site(message):
                     handler_response['text'] = ""
                 send_post_to_tg(message, handler_response)
             else:
-                respond_to_tiktok_links_with_fxtiktok(message, link[0])
-                print("Can't handle instagram link: ")
+                print("Can't handle tiktok link: ")
                 print(*link, sep="?")
-                print(post_data)
+                print("Falling back to FxTikTok")
+                fallback = tiktok_handler.handle_fallback(link[0])
+                if fallback is not None:
+                    send_post_to_tg(message, fallback.to_legacy_dict())
         except Exception as e:
             print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
             traceback.print_exception(type(e), e, e.__traceback__)
             print()
-            print("Can't handle instagram link: ")
+            print("Can't handle tiktok link: ")
             print(*link, sep="?")
             print("Falling back to FxTikTok")
-            respond_to_tiktok_links_with_fxtiktok(message, link[0])
+            fallback = tiktok_handler.handle_fallback(link[0])
+            if fallback is not None:
+                send_post_to_tg(message, fallback.to_legacy_dict())
 
     if YOUTUBE_SUPPORT_ENABLED:
         r = re.compile(SITE_REGEXES['youtube'])
@@ -646,23 +652,6 @@ def send_text_post(orig_tg_msg, caption, msg_to_reply_to):
                                     link_preview_options=LinkPreviewOptions(is_disabled=True))
     delete_handled_message(orig_tg_msg)
     return sent_message
-
-
-def respond_to_tiktok_links_with_fxtiktok(message, link):
-    # Workaround when native TikTok support (or TikWM) doesn't work
-    # FxTikTok (https://tfxktok.com/) is run by Allan Fernando
-    fixedLink = link.replace("tiktok.com/", "tfxktok.com/")
-    # I have noticed that telegram sometimes deletes messages with just a "ㅤ" character
-    # and as this is a fallback solution, I'm not gonna bother
-    # responseMsg = "[ㅤ](" + fixedLink + ")"
-    bot.reply_to(message, escape_markdown(fixedLink))
-
-
-def respond_to_ig_link_with_zzinstagram(original_message, link):
-    # Workaround when Instagrapi (or my ig session/account) doesn't work
-    # InstaEmbedRouter (https://github.com/Knoppiix/InstaEmbedRouter)
-    fixedLink = link.replace("instagram.com/", "zzinstagram.com/")
-    bot.reply_to(original_message, escape_markdown(fixedLink))
 
 
 @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)

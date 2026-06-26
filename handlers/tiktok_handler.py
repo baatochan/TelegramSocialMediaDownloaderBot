@@ -7,6 +7,15 @@ from handlers.base import MediaHandler, PostData
 
 
 class TikTokHandler(MediaHandler):
+    def handle_fallback(self, link: str) -> PostData | None:
+        # Workaround when native TikTok support (or TikWM) doesn't work
+        # FxTikTok (https://tfxktok.com/) is run by Allan Fernando
+        return PostData(
+            site="tiktok",
+            post_type="text",
+            url=link.replace("tiktok.com/", "tfxktok.com/"),
+        )
+
     def handle(self, link: str) -> PostData | None:
         headers = {'User-Agent': "Telegram Social Media Downloader Bot"}
         try:

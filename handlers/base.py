@@ -65,6 +65,7 @@ class MediaHandler(ABC):
     def handle(self, link: str) -> PostData | None:
         pass
 
-    # Optional hook for handlers that can send fallback embed links.
-    def handle_fallback(self, tg_message, link: str) -> None:
+    # Optional hook for handlers that can provide a fallback embed link.
+    # Returns a PostData to send as the fallback, or None if no fallback is available.
+    def handle_fallback(self, link: str) -> PostData | None:
         return None

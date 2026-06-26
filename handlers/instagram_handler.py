@@ -87,6 +87,15 @@ class InstagramHandler(MediaHandler):
         print(ig_client.get_settings())
         return cls(ig_client)
 
+    def handle_fallback(self, link: str) -> PostData | None:
+        # Workaround when Instagrapi (or ig session/account) doesn't work
+        # InstaEmbedRouter (https://github.com/Knoppiix/InstaEmbedRouter)
+        return PostData(
+            site="instagram",
+            post_type="text",
+            url=link.replace("instagram.com/", "zzinstagram.com/"),
+        )
+
     def handle(self, link: str) -> PostData | None:
         try:
             media_id = self.ig_client.media_pk_from_url(link)
