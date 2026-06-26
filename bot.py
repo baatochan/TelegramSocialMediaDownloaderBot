@@ -19,10 +19,10 @@ from handlers import (
     booru_handler,
     demoty_handler,
     ninegag_handler,
-    tiktok_handler,
     youtube_handler,
 )
 from handlers.instagram_handler import InstagramHandler
+from handlers.tiktok_handler import TikTokHandler
 from handlers.twitter_handler import TwitterHandler
 import file_downloader
 
@@ -72,6 +72,7 @@ SITE_REGEXES = {
 }
 
 instagram_handler = InstagramHandler.create_from_config(config['instagram'])
+tiktok_handler = TikTokHandler()
 twitter_handler = TwitterHandler()
 
 
@@ -206,8 +207,9 @@ def handle_supported_site(message):
     for link in ttLinks:
         link = link.split("?")  # we don't need parameters after ?
         try:
-            handler_response = tiktok_handler.handle_url(link[0])
-            if "type" in handler_response:
+            post_data = tiktok_handler.handle(link[0])
+            if post_data is not None:
+                handler_response = post_data.to_legacy_dict()
                 if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                     handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
                 if removeDescription:
@@ -217,7 +219,7 @@ def handle_supported_site(message):
                 respond_to_tiktok_links_with_fxtiktok(message, link[0])
                 print("Can't handle instagram link: ")
                 print(*link, sep="?")
-                print(handler_response)
+                print(post_data)
         except Exception as e:
             print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
             traceback.print_exception(type(e), e, e.__traceback__)
