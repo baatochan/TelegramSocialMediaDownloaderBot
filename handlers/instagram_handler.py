@@ -1,76 +1,91 @@
+from instagrapi import Client
 from instagrapi.exceptions import LoginRequired
 
 from handlers.base import MediaHandler, PostData
 
 
-def set_basic_settings(ig_client):
-    ig_client.set_locale('en_US')
-    ig_client.set_country('PL')
-    ig_client.set_country_code(48)
-    ig_client.set_timezone_offset(2 * 60 * 60)
-
-
-def login_ig_user(ig_client, ig_config):
-    try:
-        session = ig_client.load_settings("ig_session.json")
-    except FileNotFoundError:
-        session = None
-    except Exception as e:
-        print("Couldn't load session file: ", str(e))
-        session = None
-
-    login_via_session = False
-    login_via_pw = False
-    new_session_created = False
-
-    if session is not None:
-        try:
-            ig_client.set_settings(session)
-            ig_client.login(username=ig_config['username'],
-                            password=ig_config['password'])
-
-            # check if session is valid
-            try:
-                ig_client.get_timeline_feed()
-            except LoginRequired:
-                print("Session is invalid, need to login via username and password")
-
-                old_session = ig_client.get_settings()
-                new_session_created = True
-
-                # use the same device uuids across logins
-                ig_client.set_settings({})
-                ig_client.set_uuids(old_session["uuids"])
-
-                ig_client.login(username=ig_config['username'],
-                                password=ig_config['password'])
-
-            login_via_session = True
-        except Exception as e:
-            print("Couldn't login user using session information: ", str(e))
-
-    if not login_via_session:
-        try:
-            print("Attempting to login via username and password. username: " +
-                  ig_config['username'])
-            if ig_client.login(username=ig_config['username'], password=ig_config['password']):
-                login_via_pw = True
-                new_session_created = True
-        except Exception as e:
-            print("Couldn't login user using username and password: ", str(e))
-
-    if not login_via_pw and not login_via_session:
-        raise Exception(
-            "Couldn't login ig user with either password or session")
-
-    if new_session_created:
-        set_basic_settings(ig_client)
-        ig_client.dump_settings("ig_session.json")
-
-
 class InstagramHandler(MediaHandler):
     def __init__(self, ig_client):
         self.ig_client = ig_client
+
+    @staticmethod
+    def set_basic_settings(ig_client):
+        ig_client.set_locale('en_US')
+        ig_client.set_country('PL')
+        ig_client.set_country_code(48)
+        ig_client.set_timezone_offset(2 * 60 * 60)
+
+    @staticmethod
+    def login_ig_user(ig_client, ig_config):
+        try:
+            session = ig_client.load_settings("ig_session.json")
+        except FileNotFoundError:
+            session = None
+        except Exception as e:
+            print("Couldn't load session file: ", str(e))
+            session = None
+
+        login_via_session = False
+        login_via_pw = False
+        new_session_created = False
+
+        if session is not None:
+            try:
+                ig_client.set_settings(session)
+                ig_client.login(username=ig_config['username'],
+                                password=ig_config['password'])
+
+                # check if session is valid
+                try:
+                    ig_client.get_timeline_feed()
+                except LoginRequired:
+                    print("Session is invalid, need to login via username and password")
+
+                    old_session = ig_client.get_settings()
+                    new_session_created = True
+
+                    # use the same device uuids across logins
+                    ig_client.set_settings({})
+                    ig_client.set_uuids(old_session["uuids"])
+
+                    ig_client.login(username=ig_config['username'],
+                                    password=ig_config['password'])
+
+                login_via_session = True
+            except Exception as e:
+                print("Couldn't login user using session information: ", str(e))
+
+        if not login_via_session:
+            try:
+                print("Attempting to login via username and password. username: " +
+                      ig_config['username'])
+                if ig_client.login(username=ig_config['username'], password=ig_config['password']):
+                    login_via_pw = True
+                    new_session_created = True
+            except Exception as e:
+                print("Couldn't login user using username and password: ", str(e))
+
+        if not login_via_pw and not login_via_session:
+            raise Exception(
+                "Couldn't login ig user with either password or session")
+
+        if new_session_created:
+            InstagramHandler.set_basic_settings(ig_client)
+            ig_client.dump_settings("ig_session.json")
+
+    @classmethod
+    def create_from_config(cls, ig_config):
+        ig_client = Client()
+
+        if ig_config.getboolean('do_login'):
+            cls.login_ig_user(ig_client, ig_config)
+            print("Started an ig client with an account with following settings:")
+        else:
+            cls.set_basic_settings(ig_client)
+            print("Started an ig client without an account with following settings:")
+
+        print(ig_client.get_settings())
+        return cls(ig_client)
 
     def handle(self, link: str) -> PostData | None:
         try:

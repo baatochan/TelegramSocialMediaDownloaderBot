@@ -10,7 +10,6 @@ import traceback
 from enum import Enum
 
 import telebot
-from instagrapi import Client
 from telebot.formatting import escape_markdown
 from telebot.types import (InputMediaPhoto, InputMediaVideo,
                            LinkPreviewOptions, ReplyParameters)
@@ -19,7 +18,6 @@ from tendo import singleton
 from handlers import (
     booru_handler,
     demoty_handler,
-    instagram_handler,
     ninegag_handler,
     tiktok_handler,
     youtube_handler,
@@ -73,8 +71,7 @@ SITE_REGEXES = {
     "youtube": "((http(s)?://)|^| )(www.|m.)?(youtube(-nocookie)?.com|youtu.be)/.+",
 }
 
-instagram_client = Client()
-instagram_post_handler = InstagramHandler(instagram_client)
+instagram_handler = InstagramHandler.create_from_config(config['instagram'])
 twitter_handler = TwitterHandler()
 
 
@@ -160,7 +157,7 @@ def handle_supported_site(message):
     igLinks = list(filter(r.match, msgContent))
     for link in igLinks:
         link = link.split("?")  # we don't need parameters after ?
-        post_data = instagram_post_handler.handle(link[0])
+        post_data = instagram_handler.handle(link[0])
         if post_data is not None:
             handler_response = post_data.to_legacy_dict()
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
@@ -706,14 +703,6 @@ for sig in set(signal.Signals):
         print("Handler for signal " + str(sig) + " set.")
     except (ValueError, OSError, RuntimeError) as _:
         pass
-
-if config['instagram'].getboolean('do_login'):
-    instagram_handler.login_ig_user(instagram_client, config['instagram'])
-    print("Started an ig client with an account with following settings:")
-else:
-    instagram_handler.set_basic_settings(instagram_client)
-    print("Started an ig client without an account with following settings:")
-print(instagram_client.get_settings())
 
 while True:
     try:
