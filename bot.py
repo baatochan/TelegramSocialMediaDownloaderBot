@@ -15,13 +15,13 @@ from telebot.types import (InputMediaPhoto, InputMediaVideo,
                            LinkPreviewOptions, ReplyParameters)
 from tendo import singleton
 
-from handlers import youtube_handler
 from handlers.booru_handler import BooruHandler
 from handlers.demoty_handler import DemotyHandler
 from handlers.instagram_handler import InstagramHandler
 from handlers.ninegag_handler import NineGagHandler
 from handlers.tiktok_handler import TikTokHandler
 from handlers.twitter_handler import TwitterHandler
+from handlers.youtube_handler import YouTubeHandler
 import file_downloader
 
 
@@ -75,6 +75,7 @@ ninegag_handler = NineGagHandler(
 tiktok_handler = TikTokHandler()
 twitter_handler = TwitterHandler()
 demoty_handler = DemotyHandler()
+youtube_handler = YouTubeHandler()
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -242,8 +243,9 @@ def handle_supported_site(message):
         r = re.compile(SITE_REGEXES['youtube'])
         ytLinks = list(filter(r.match, msgContent))
         for link in ytLinks:
-            handler_response = youtube_handler.handle_url(link)
-            if "type" in handler_response:
+            post_data = youtube_handler.handle(link)
+            if post_data is not None:
+                handler_response = post_data.to_legacy_dict()
                 if removeDescription:
                     handler_response['text'] = ""
                 send_post_to_tg(message, handler_response)
