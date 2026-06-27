@@ -107,8 +107,7 @@ def handle_supported_site(message):
 
     msgContent = message.text.split()
 
-    r = re.compile(ninegag_handler.URL_REGEX)
-    ninegagLinks = list(filter(r.match, msgContent))
+    ninegagLinks = extract_site_links(msgContent, ninegag_handler.URL_REGEX)
     for link in ninegagLinks:
         link = link.split("?")  # we don't need parameters after ?
         post_data = ninegag_handler.handle(link[0])
@@ -123,8 +122,7 @@ def handle_supported_site(message):
             print("Can't handle 9gag link: ")
             print(*link, sep="?")
 
-    r = re.compile(twitter_handler.URL_REGEX)
-    twitterLinks = list(filter(r.match, msgContent))
+    twitterLinks = extract_site_links(msgContent, twitter_handler.URL_REGEX)
     for link in twitterLinks:
         link = link.split("?")  # we don't need parameters after ?
         post_data = twitter_handler.handle(link[0])
@@ -146,8 +144,7 @@ def handle_supported_site(message):
             print("Can't handle twitter link: ")
             print(*link, sep="?")
 
-    r = re.compile(instagram_handler.URL_REGEX)
-    igLinks = list(filter(r.match, msgContent))
+    igLinks = extract_site_links(msgContent, instagram_handler.URL_REGEX)
     for link in igLinks:
         link = link.split("?")  # we don't need parameters after ?
         post_data = instagram_handler.handle(link[0])
@@ -166,8 +163,7 @@ def handle_supported_site(message):
             if fallback is not None:
                 send_post_to_tg(message, fallback.to_legacy_dict())
 
-    r = re.compile(booru_handler.URL_REGEX)
-    booruLinks = list(filter(r.match, msgContent))
+    booruLinks = extract_site_links(msgContent, booru_handler.URL_REGEX)
     for link in booruLinks:
         link = link.split("?")  # we don't need parameters after ?
         post_data = booru_handler.handle(link[0])
@@ -182,8 +178,7 @@ def handle_supported_site(message):
             print("Can't handle *booru link: ")
             print(*link, sep="?")
 
-    r = re.compile(demoty_handler.URL_REGEX)
-    demotyLinks = list(filter(r.match, msgContent))
+    demotyLinks = extract_site_links(msgContent, demoty_handler.URL_REGEX)
     for link in demotyLinks:
         link = link.split("?")  # we don't need parameters after ?
         post_data = demoty_handler.handle(link[0])
@@ -198,8 +193,7 @@ def handle_supported_site(message):
             print("Can't handle demotywatory link: ")
             print(*link, sep="?")
 
-    r = re.compile(tiktok_handler.URL_REGEX)
-    ttLinks = list(filter(r.match, msgContent))
+    ttLinks = extract_site_links(msgContent, tiktok_handler.URL_REGEX)
     for link in ttLinks:
         link = link.split("?")  # we don't need parameters after ?
         try:
@@ -230,8 +224,7 @@ def handle_supported_site(message):
                 send_post_to_tg(message, fallback.to_legacy_dict())
 
     if YOUTUBE_SUPPORT_ENABLED:
-        r = re.compile(youtube_handler.URL_REGEX)
-        ytLinks = list(filter(r.match, msgContent))
+        ytLinks = extract_site_links(msgContent, youtube_handler.URL_REGEX)
         for link in ytLinks:
             post_data = youtube_handler.handle(link)
             if post_data is not None:
@@ -241,6 +234,27 @@ def handle_supported_site(message):
                 send_post_to_tg(message, handler_response)
             else:
                 print("Can't handle youtube link: " + str(link))
+
+
+def normalize_message_token(token: str) -> str:
+    token = token.strip()
+    token = token.lstrip("'\"([{<")
+    token = token.rstrip(".,!?;:'\"])}>")
+    return token
+
+
+def extract_site_links(msg_content: list[str], url_regex: str) -> list[str]:
+    r = re.compile(url_regex)
+    links = []
+    for token in msg_content:
+        normalized_token = normalize_message_token(token)
+        if not normalized_token:
+            continue
+
+        if r.match(normalized_token.lower()):
+            links.append(normalized_token)
+
+    return links
 
 
 @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
