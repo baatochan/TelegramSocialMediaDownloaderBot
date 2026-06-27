@@ -7,6 +7,7 @@ from handlers.base import MediaHandler, PostData
 
 
 class YouTubeHandler(MediaHandler):
+    SITE_NAME = "youtube"
     URL_REGEX = r"((http(s)?://)|^| )(www\.|m\.)?(youtube(-nocookie)?\.com|youtu\.be)/.+"
 
     def handle(self, link: str) -> PostData | None:

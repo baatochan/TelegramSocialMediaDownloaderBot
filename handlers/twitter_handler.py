@@ -8,6 +8,7 @@ from handlers.base import MediaHandler, PostData
 
 
 class TwitterHandler(MediaHandler):
+    SITE_NAME = "twitter"
     URL_REGEX = r"((http(s)?://)|^| )(www\.)?((fixup|fixv)?x|(fx|vx)?twitter)\.com/.+"
 
     def handle(self, link: str) -> PostData | None:

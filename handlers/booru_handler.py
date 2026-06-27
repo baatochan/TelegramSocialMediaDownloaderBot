@@ -10,6 +10,7 @@ from handlers.base import MediaHandler, PostData
 
 
 class BooruHandler(MediaHandler):
+    SITE_NAME = "booru"
     URL_REGEX = r"((http(s)?://)|^| )(www\.)?[a-zA-Z]*booru\.org/.+"
 
     CONVERT_WEBM_VIDEO = False

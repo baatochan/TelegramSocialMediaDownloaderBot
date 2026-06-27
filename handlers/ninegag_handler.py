@@ -12,6 +12,7 @@ from handlers.base import MediaHandler, PostData
 
 
 class NineGagHandler(MediaHandler):
+    SITE_NAME = "9gag"
     URL_REGEX = r"((http(s)?://)|^| )(www\.)?9gag\.com/.+"
 
     def __init__(self, use_selenium: bool = True):

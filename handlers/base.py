@@ -61,6 +61,8 @@ class PostData:
 
 
 class MediaHandler(ABC):
+    SITE_NAME = "unknown"
+
     @abstractmethod
     def handle(self, link: str) -> PostData | None:
         pass

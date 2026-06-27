@@ -109,18 +109,14 @@ def handle_supported_site(message):
 
     ninegagLinks = extract_site_links(msgContent, ninegag_handler.URL_REGEX)
     for link in ninegagLinks:
-        link = link.split("?")  # we don't need parameters after ?
-        post_data = ninegag_handler.handle(link[0])
-        if post_data is not None:
-            handler_response = post_data.to_legacy_dict()
-            if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
-                handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
-            if removeDescription:
-                handler_response['text'] = ""
-            send_post_to_tg(message, handler_response)
-        else:
-            print("Can't handle 9gag link: ")
-            print(*link, sep="?")
+        process_site_link(
+            message,
+            link,
+            ninegag_handler,
+            overrideSpoiler,
+            removeDescription,
+            strip_query_params=True,
+        )
 
     twitterLinks = extract_site_links(msgContent, twitter_handler.URL_REGEX)
     for link in twitterLinks:
@@ -180,18 +176,14 @@ def handle_supported_site(message):
 
     demotyLinks = extract_site_links(msgContent, demoty_handler.URL_REGEX)
     for link in demotyLinks:
-        link = link.split("?")  # we don't need parameters after ?
-        post_data = demoty_handler.handle(link[0])
-        if post_data is not None:
-            handler_response = post_data.to_legacy_dict()
-            if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
-                handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
-            if removeDescription:
-                handler_response['text'] = ""
-            send_post_to_tg(message, handler_response)
-        else:
-            print("Can't handle demotywatory link: ")
-            print(*link, sep="?")
+        process_site_link(
+            message,
+            link,
+            demoty_handler,
+            overrideSpoiler,
+            removeDescription,
+            strip_query_params=True,
+        )
 
     ttLinks = extract_site_links(msgContent, tiktok_handler.URL_REGEX)
     for link in ttLinks:
@@ -226,14 +218,14 @@ def handle_supported_site(message):
     if YOUTUBE_SUPPORT_ENABLED:
         ytLinks = extract_site_links(msgContent, youtube_handler.URL_REGEX)
         for link in ytLinks:
-            post_data = youtube_handler.handle(link)
-            if post_data is not None:
-                handler_response = post_data.to_legacy_dict()
-                if removeDescription:
-                    handler_response['text'] = ""
-                send_post_to_tg(message, handler_response)
-            else:
-                print("Can't handle youtube link: " + str(link))
+            process_site_link(
+                message,
+                link,
+                youtube_handler,
+                overrideSpoiler,
+                removeDescription,
+                strip_query_params=False,
+            )
 
 
 def normalize_message_token(token: str) -> str:
@@ -255,6 +247,64 @@ def extract_site_links(msg_content: list[str], url_regex: str) -> list[str]:
             links.append(normalized_token)
 
     return links
+
+
+def process_site_link(message, link: str, handler, override_spoiler,
+                      remove_description: bool,
+                      strip_query_params: bool) -> None:
+    site_label = handler.SITE_NAME
+
+    link_to_handle = link
+    if strip_query_params:
+        link_to_handle = link.split("?")[0]
+
+    post_data = handler.handle(link_to_handle)
+    if post_data is None:
+        print("Can't handle " + site_label + " link: " + str(link))
+
+        post_data = handler.handle_fallback(link_to_handle)
+        if post_data is None:
+            return
+
+    if override_spoiler != OverrideSpoiler.NO_OVERRIDE:
+        post_data.spoiler = override_spoiler == OverrideSpoiler.SPOILER
+    if remove_description:
+        post_data.text = ""
+
+    handler_response = post_data.to_legacy_dict()
+    send_post_with_fallback(
+        message,
+        handler_response,
+        handler,
+        link_to_handle,
+    )
+
+
+def send_post_with_fallback(message, handler_response, handler, link_to_handle) -> None:
+    try:
+        if handler_response['reply'] or handler_response['quote']:
+            msg_to_reply_to, caption_suffix = prepare_twitter_send_context(
+                message, handler_response)
+            send_post_to_tg(
+                message,
+                handler_response,
+                msg_to_reply_to=msg_to_reply_to,
+                caption_suffix=caption_suffix,
+            )
+        else:
+            send_post_to_tg(message, handler_response)
+    except Exception as e:
+        print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
+        traceback.print_exception(type(e), e, e.__traceback__)
+        print()
+        print("Couldn't send " + handler.SITE_NAME +
+              " post, trying fallback: " + str(link_to_handle))
+
+        fallback_post_data = handler.handle_fallback(link_to_handle)
+        if fallback_post_data is None:
+            return
+
+        send_post_to_tg(message, fallback_post_data.to_legacy_dict())
 
 
 @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)

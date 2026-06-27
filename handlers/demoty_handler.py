@@ -9,6 +9,7 @@ from handlers.base import MediaHandler, PostData
 
 
 class DemotyHandler(MediaHandler):
+    SITE_NAME = "demotywatory"
     URL_REGEX = r"((http(s)?://)|^| )(www\.|m\.)?demotywatory\.pl/.+"
 
     def handle(self, link: str) -> PostData | None:
