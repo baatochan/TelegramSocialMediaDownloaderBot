@@ -12,7 +12,7 @@ from handlers.base import MediaHandler, PostData
 
 
 class NineGagHandler(MediaHandler):
-    URL_REGEX = "((http(s)?://)|^| )(www.)?9gag.com/.+"
+    URL_REGEX = r"((http(s)?://)|^| )(www\.)?9gag\.com/.+"
 
     def __init__(self, use_selenium: bool = True):
         self.use_selenium = use_selenium

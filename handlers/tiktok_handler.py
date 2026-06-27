@@ -7,7 +7,7 @@ from handlers.base import MediaHandler, PostData
 
 
 class TikTokHandler(MediaHandler):
-    URL_REGEX = "((http(s)?://)|^| )(www.|vm.|m.)?tiktok.com/.+"
+    URL_REGEX = r"((http(s)?://)|^| )(www\.|vm\.|m\.)?tiktok\.com/.+"
 
     def handle_fallback(self, link: str) -> PostData | None:
         # Workaround when native TikTok support (or TikWM) doesn't work
