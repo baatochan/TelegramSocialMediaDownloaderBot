@@ -5,6 +5,8 @@ from handlers.base import MediaHandler, PostData
 
 
 class InstagramHandler(MediaHandler):
+    URL_REGEX = "((http(s)?://)|^| )(www.)?instagram.com/.+"
+
     def __init__(self, ig_client):
         self.ig_client = ig_client
 

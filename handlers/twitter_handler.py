@@ -8,6 +8,8 @@ from handlers.base import MediaHandler, PostData
 
 
 class TwitterHandler(MediaHandler):
+    URL_REGEX = "((http(s)?://)|^| )(www.)?((fixup|fixv)?x|(fx|vx)?twitter).com/.+"
+
     def handle(self, link: str) -> PostData | None:
         headers = {'User-Agent': "Telegram Social Media Downloader Bot"}
         link_parts = link.split('/')

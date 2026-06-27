@@ -58,16 +58,6 @@ bot.parse_mode = PARSE_MODE
 
 ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
 
-SITE_REGEXES = {
-    "9gag": "((http(s)?://)|^| )(www.)?9gag.com/.+",
-    "twitter": "((http(s)?://)|^| )(www.)?((fixup|fixv)?x|(fx|vx)?twitter).com/.+",
-    "instagram": "((http(s)?://)|^| )(www.)?instagram.com/.+",
-    "booru": "((http(s)?://)|^| )(www.)?[a-zA-Z]*booru.org/.+",
-    "demoty": "((http(s)?://)|^| )(www.|m.)?demotywatory.pl/.+",
-    "tiktok": "((http(s)?://)|^| )(www.|vm.|m.)?tiktok.com/.+",
-    "youtube": "((http(s)?://)|^| )(www.|m.)?(youtube(-nocookie)?.com|youtu.be)/.+",
-}
-
 booru_handler = BooruHandler()
 instagram_handler = InstagramHandler.create_from_config(config['instagram'])
 ninegag_handler = NineGagHandler(
@@ -94,13 +84,13 @@ def send_welcome(message):
                      parse_mode=None)
 
 
-@bot.message_handler(regexp=SITE_REGEXES['9gag'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=SITE_REGEXES['twitter'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=SITE_REGEXES['instagram'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=SITE_REGEXES['booru'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=SITE_REGEXES['demoty'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=SITE_REGEXES['tiktok'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=SITE_REGEXES['youtube'], func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=ninegag_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=twitter_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=instagram_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=booru_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=demoty_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=tiktok_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=youtube_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
@@ -117,7 +107,7 @@ def handle_supported_site(message):
 
     msgContent = message.text.split()
 
-    r = re.compile(SITE_REGEXES['9gag'])
+    r = re.compile(ninegag_handler.URL_REGEX)
     ninegagLinks = list(filter(r.match, msgContent))
     for link in ninegagLinks:
         link = link.split("?")  # we don't need parameters after ?
@@ -133,7 +123,7 @@ def handle_supported_site(message):
             print("Can't handle 9gag link: ")
             print(*link, sep="?")
 
-    r = re.compile(SITE_REGEXES['twitter'])
+    r = re.compile(twitter_handler.URL_REGEX)
     twitterLinks = list(filter(r.match, msgContent))
     for link in twitterLinks:
         link = link.split("?")  # we don't need parameters after ?
@@ -156,7 +146,7 @@ def handle_supported_site(message):
             print("Can't handle twitter link: ")
             print(*link, sep="?")
 
-    r = re.compile(SITE_REGEXES['instagram'])
+    r = re.compile(instagram_handler.URL_REGEX)
     igLinks = list(filter(r.match, msgContent))
     for link in igLinks:
         link = link.split("?")  # we don't need parameters after ?
@@ -176,7 +166,7 @@ def handle_supported_site(message):
             if fallback is not None:
                 send_post_to_tg(message, fallback.to_legacy_dict())
 
-    r = re.compile(SITE_REGEXES['booru'])
+    r = re.compile(booru_handler.URL_REGEX)
     booruLinks = list(filter(r.match, msgContent))
     for link in booruLinks:
         link = link.split("?")  # we don't need parameters after ?
@@ -192,7 +182,7 @@ def handle_supported_site(message):
             print("Can't handle *booru link: ")
             print(*link, sep="?")
 
-    r = re.compile(SITE_REGEXES['demoty'])
+    r = re.compile(demoty_handler.URL_REGEX)
     demotyLinks = list(filter(r.match, msgContent))
     for link in demotyLinks:
         link = link.split("?")  # we don't need parameters after ?
@@ -208,7 +198,7 @@ def handle_supported_site(message):
             print("Can't handle demotywatory link: ")
             print(*link, sep="?")
 
-    r = re.compile(SITE_REGEXES['tiktok'])
+    r = re.compile(tiktok_handler.URL_REGEX)
     ttLinks = list(filter(r.match, msgContent))
     for link in ttLinks:
         link = link.split("?")  # we don't need parameters after ?
@@ -240,7 +230,7 @@ def handle_supported_site(message):
                 send_post_to_tg(message, fallback.to_legacy_dict())
 
     if YOUTUBE_SUPPORT_ENABLED:
-        r = re.compile(SITE_REGEXES['youtube'])
+        r = re.compile(youtube_handler.URL_REGEX)
         ytLinks = list(filter(r.match, msgContent))
         for link in ytLinks:
             post_data = youtube_handler.handle(link)

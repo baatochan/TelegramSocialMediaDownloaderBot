@@ -9,6 +9,8 @@ from handlers.base import MediaHandler, PostData
 
 
 class DemotyHandler(MediaHandler):
+    URL_REGEX = "((http(s)?://)|^| )(www.|m.)?demotywatory.pl/.+"
+
     def handle(self, link: str) -> PostData | None:
         user_agent = UserAgent().Random()
         headers = {'User-Agent': user_agent}
