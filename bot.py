@@ -16,10 +16,10 @@ from telebot.types import (InputMediaPhoto, InputMediaVideo,
 from tendo import singleton
 
 from handlers import (
-    booru_handler,
     demoty_handler,
     youtube_handler,
 )
+from handlers.booru_handler import BooruHandler
 from handlers.instagram_handler import InstagramHandler
 from handlers.ninegag_handler import NineGagHandler
 from handlers.tiktok_handler import TikTokHandler
@@ -70,6 +70,7 @@ SITE_REGEXES = {
     "youtube": "((http(s)?://)|^| )(www.|m.)?(youtube(-nocookie)?.com|youtu.be)/.+",
 }
 
+booru_handler = BooruHandler()
 instagram_handler = InstagramHandler.create_from_config(config['instagram'])
 ninegag_handler = NineGagHandler(
     use_selenium=config['9gag'].getboolean('use_selenium'))
@@ -179,8 +180,9 @@ def handle_supported_site(message):
     booruLinks = list(filter(r.match, msgContent))
     for link in booruLinks:
         link = link.split("?")  # we don't need parameters after ?
-        handler_response = booru_handler.handle_url(link[0])
-        if "type" in handler_response:
+        post_data = booru_handler.handle(link[0])
+        if post_data is not None:
+            handler_response = post_data.to_legacy_dict()
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             if removeDescription:
@@ -255,20 +257,17 @@ def handle_derpibooru_magic_character_request(message):
     msg_text = msg_text.lstrip(">>").lstrip("»")
 
     if msg_text.startswith("!"):
-        allow_nsfw = True
-        dont_spoil_nsfw = False
-        handler_response = booru_handler.handle_url(
-            "https://derpibooru.org/{}".format(msg_text.lstrip("!")), allow_nsfw, dont_spoil_nsfw)
+        post_data = booru_handler.handle_with_options(
+            "https://derpibooru.org/{}".format(msg_text.lstrip("!")), allow_nsfw=True, spoil_nsfw=False)
     elif msg_text.startswith("?"):
-        handler_response = booru_handler.handle_url(
+        post_data = booru_handler.handle_with_options(
             "https://derpibooru.org/{}".format(msg_text.lstrip("?")))
     else:
-        dont_allow_nsfw = False
-        handler_response = booru_handler.handle_url(
-            "https://derpibooru.org/{}".format(msg_text), dont_allow_nsfw)
+        post_data = booru_handler.handle_with_options(
+            "https://derpibooru.org/{}".format(msg_text), allow_nsfw=False)
 
-    if "type" in handler_response:
-        send_post_to_tg(message, handler_response)
+    if post_data is not None:
+        send_post_to_tg(message, post_data.to_legacy_dict())
     else:
         print("Can't handle derpibooru img {}".format(msg_text))
 
