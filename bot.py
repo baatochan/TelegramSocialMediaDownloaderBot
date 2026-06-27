@@ -15,11 +15,9 @@ from telebot.types import (InputMediaPhoto, InputMediaVideo,
                            LinkPreviewOptions, ReplyParameters)
 from tendo import singleton
 
-from handlers import (
-    demoty_handler,
-    youtube_handler,
-)
+from handlers import youtube_handler
 from handlers.booru_handler import BooruHandler
+from handlers.demoty_handler import DemotyHandler
 from handlers.instagram_handler import InstagramHandler
 from handlers.ninegag_handler import NineGagHandler
 from handlers.tiktok_handler import TikTokHandler
@@ -76,6 +74,7 @@ ninegag_handler = NineGagHandler(
     use_selenium=config['9gag'].getboolean('use_selenium'))
 tiktok_handler = TikTokHandler()
 twitter_handler = TwitterHandler()
+demoty_handler = DemotyHandler()
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -196,8 +195,9 @@ def handle_supported_site(message):
     demotyLinks = list(filter(r.match, msgContent))
     for link in demotyLinks:
         link = link.split("?")  # we don't need parameters after ?
-        handler_response = demoty_handler.handle_url(link[0])
-        if "type" in handler_response:
+        post_data = demoty_handler.handle(link[0])
+        if post_data is not None:
+            handler_response = post_data.to_legacy_dict()
             if overrideSpoiler != OverrideSpoiler.NO_OVERRIDE:
                 handler_response['spoiler'] = overrideSpoiler == OverrideSpoiler.SPOILER
             if removeDescription:
