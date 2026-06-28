@@ -1,19 +1,19 @@
 """Handler modules for different social media platforms."""
 
-from . import booru_handler
-from . import demoty_handler
-from . import instagram_handler
-from . import ninegag_handler
-from . import tiktok_handler
-from . import twitter_handler
-from . import youtube_handler
+from .booru_handler import BooruHandler
+from .demoty_handler import DemotyHandler
+from .instagram_handler import InstagramHandler
+from .ninegag_handler import NineGagHandler
+from .tiktok_handler import TikTokHandler
+from .twitter_handler import TwitterHandler
+from .youtube_handler import YouTubeHandler
 
 __all__ = [
-    'booru_handler',
-    'demoty_handler',
-    'instagram_handler',
-    'ninegag_handler',
-    'tiktok_handler',
-    'twitter_handler',
-    'youtube_handler',
+    'BooruHandler',
+    'DemotyHandler',
+    'InstagramHandler',
+    'NineGagHandler',
+    'TikTokHandler',
+    'TwitterHandler',
+    'YouTubeHandler',
 ]

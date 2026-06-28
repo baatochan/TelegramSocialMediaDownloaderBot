@@ -15,13 +15,15 @@ from telebot.types import (InputMediaPhoto, InputMediaVideo,
                            LinkPreviewOptions, ReplyParameters)
 from tendo import singleton
 
-from handlers.booru_handler import BooruHandler
-from handlers.demoty_handler import DemotyHandler
-from handlers.instagram_handler import InstagramHandler
-from handlers.ninegag_handler import NineGagHandler
-from handlers.tiktok_handler import TikTokHandler
-from handlers.twitter_handler import TwitterHandler
-from handlers.youtube_handler import YouTubeHandler
+from handlers import (
+    BooruHandler,
+    DemotyHandler,
+    InstagramHandler,
+    NineGagHandler,
+    TikTokHandler,
+    TwitterHandler,
+    YouTubeHandler,
+)
 import file_downloader
 
 
