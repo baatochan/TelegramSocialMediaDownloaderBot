@@ -79,6 +79,7 @@ class InstagramHandler(MediaHandler):
     @classmethod
     def create_from_config(cls, ig_config):
         ig_client = Client()
+        ig_client.set_user_agent(ig_config['user_agent'])
 
         if ig_config.getboolean('do_login'):
             cls.login_ig_user(ig_client, ig_config)
