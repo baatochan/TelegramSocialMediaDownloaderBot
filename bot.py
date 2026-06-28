@@ -17,12 +17,8 @@ from tendo import singleton
 
 from handlers import (
     BooruHandler,
-    DemotyHandler,
-    InstagramHandler,
-    NineGagHandler,
-    TikTokHandler,
+    HandlerRegistry,
     TwitterHandler,
-    YouTubeHandler,
 )
 import file_downloader
 
@@ -58,15 +54,13 @@ bot.parse_mode = PARSE_MODE
 
 ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
 
-booru_handler = BooruHandler()
-instagram_handler = InstagramHandler.create_from_config(config['instagram'])
-ninegag_handler = NineGagHandler(
-    use_selenium=config['9gag'].getboolean('use_selenium'))
-tiktok_handler = TikTokHandler()
-twitter_handler = TwitterHandler()
-demoty_handler = DemotyHandler()
-youtube_handler = YouTubeHandler(
-    enabled=config['youtube'].getboolean('enabled'))
+handler_registry = HandlerRegistry.create_from_config(config)
+handlers_to_process = handler_registry.get_active_handlers()
+supported_sites_regex = handler_registry.get_active_combined_regex()
+
+# Site-specific workflows still need direct access to selected handlers.
+booru_handler = handler_registry.get_handler(BooruHandler.SITE_NAME)
+twitter_handler = handler_registry.get_handler(TwitterHandler.SITE_NAME)
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -85,13 +79,7 @@ def send_welcome(message):
                      parse_mode=None)
 
 
-@bot.message_handler(regexp=ninegag_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=twitter_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=instagram_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=booru_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=demoty_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=tiktok_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-@bot.message_handler(regexp=youtube_handler.URL_REGEX, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
+@bot.message_handler(regexp=supported_sites_regex, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
 def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
@@ -108,20 +96,7 @@ def handle_supported_site(message):
 
     msgContent = message.text.split()
 
-    handlers_to_process = [
-        booru_handler,
-        instagram_handler,
-        ninegag_handler,
-        tiktok_handler,
-        twitter_handler,
-        demoty_handler,
-        youtube_handler,
-    ]
-
     for handler in handlers_to_process:
-        if not handler.enabled:
-            continue
-
         links = extract_site_links(msgContent, handler.URL_REGEX)
         for link in links:
             process_site_link(

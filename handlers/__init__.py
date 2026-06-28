@@ -7,6 +7,7 @@ from .ninegag_handler import NineGagHandler
 from .tiktok_handler import TikTokHandler
 from .twitter_handler import TwitterHandler
 from .youtube_handler import YouTubeHandler
+from .registry import HandlerRegistry
 
 __all__ = [
     'BooruHandler',
@@ -16,4 +17,5 @@ __all__ = [
     'TikTokHandler',
     'TwitterHandler',
     'YouTubeHandler',
+    'HandlerRegistry',
 ]
