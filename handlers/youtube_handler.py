@@ -10,6 +10,11 @@ class YouTubeHandler(MediaHandler):
     SITE_NAME = "youtube"
     URL_REGEX = r"((http(s)?://)|^| )(www\.|m\.)?(youtube(-nocookie)?\.com|youtu\.be)/.+"
 
+    def __init__(self, enabled: bool = True):
+        self.enabled = enabled
+        if not self.enabled:
+            print("YouTubeHandler is disabled.")
+
     def normalize_url(self, link: str) -> str:
         parsed = urlsplit(link)
         query_params = parse_qsl(parsed.query, keep_blank_values=True)

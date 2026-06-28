@@ -49,9 +49,6 @@ else:
 ALLOWED_USERS = json.loads(config['config']['allowed_users'])
 ALLOWED_CHATS = json.loads(config['config']['allowed_chats'])
 
-INSTAGRAM_SUPPORT_ENABLED = config['instagram'].getboolean('enabled')
-YOUTUBE_SUPPORT_ENABLED = config['youtube'].getboolean('enabled')
-
 bot = telebot.TeleBot(config['config']['token'])
 BOT_ID = bot.get_me().id
 PARSE_MODE = "MarkdownV2"
@@ -60,17 +57,14 @@ bot.parse_mode = PARSE_MODE
 ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
 
 booru_handler = BooruHandler()
-if INSTAGRAM_SUPPORT_ENABLED:
-    instagram_handler = InstagramHandler.create_from_config(
-        config['instagram'])
-else:
-    instagram_handler = InstagramHandler(None)
+instagram_handler = InstagramHandler.create_from_config(config['instagram'])
 ninegag_handler = NineGagHandler(
     use_selenium=config['9gag'].getboolean('use_selenium'))
 tiktok_handler = TikTokHandler()
 twitter_handler = TwitterHandler()
 demoty_handler = DemotyHandler()
-youtube_handler = YouTubeHandler()
+youtube_handler = YouTubeHandler(
+    enabled=config['youtube'].getboolean('enabled'))
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -132,7 +126,7 @@ def handle_supported_site(message):
             removeDescription,
         )
 
-    if INSTAGRAM_SUPPORT_ENABLED:
+    if instagram_handler.enabled:
         igLinks = extract_site_links(msgContent, instagram_handler.URL_REGEX)
         for link in igLinks:
             process_site_link(
@@ -173,7 +167,7 @@ def handle_supported_site(message):
             removeDescription,
         )
 
-    if YOUTUBE_SUPPORT_ENABLED:
+    if youtube_handler.enabled:
         ytLinks = extract_site_links(msgContent, youtube_handler.URL_REGEX)
         for link in ytLinks:
             process_site_link(

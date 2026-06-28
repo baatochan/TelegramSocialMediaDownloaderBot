@@ -63,6 +63,7 @@ class PostData:
 
 class MediaHandler(ABC):
     SITE_NAME = "unknown"
+    enabled = True
 
     def normalize_url(self, link: str) -> str:
         parsed = urlsplit(link)

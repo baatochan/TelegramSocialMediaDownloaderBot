@@ -8,8 +8,12 @@ class InstagramHandler(MediaHandler):
     SITE_NAME = "instagram"
     URL_REGEX = r"((http(s)?://)|^| )(www\.)?instagram\.com/.+"
 
-    def __init__(self, ig_client):
+    def __init__(self, ig_client, enabled: bool = True):
         self.ig_client = ig_client
+        self.enabled = enabled
+        if self.ig_client is None:
+            print("InstagramHandler is disabled.")
+            self.enabled = False
 
     @staticmethod
     def set_basic_settings(ig_client):
@@ -78,6 +82,10 @@ class InstagramHandler(MediaHandler):
 
     @classmethod
     def create_from_config(cls, ig_config):
+        enabled = ig_config.getboolean('enabled', fallback=True)
+        if not enabled:
+            return cls(None, enabled=False)
+
         ig_client = Client()
         ig_client.set_user_agent(ig_config['user_agent'])
 
