@@ -1,7 +1,7 @@
 
-import re
 import time
 import traceback
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 import yt_dlp_wrapper
 from handlers.base import MediaHandler, PostData
 
@@ -10,10 +10,20 @@ class YouTubeHandler(MediaHandler):
     SITE_NAME = "youtube"
     URL_REGEX = r"((http(s)?://)|^| )(www\.|m\.)?(youtube(-nocookie)?\.com|youtu\.be)/.+"
 
+    def normalize_url(self, link: str) -> str:
+        parsed = urlsplit(link)
+        query_params = parse_qsl(parsed.query, keep_blank_values=True)
+        filtered_query_params = [
+            (key, value)
+            for key, value in query_params
+            if key not in {"si", "pp"}
+        ]
+        normalized_query = urlencode(filtered_query_params, doseq=True)
+        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, normalized_query, ""))
+
     def handle(self, link: str) -> PostData | None:
-        clean_link = self._clean_up_url(link)
         try:
-            [output_filename, info_dict] = yt_dlp_wrapper.download(clean_link)
+            [output_filename, info_dict] = yt_dlp_wrapper.download(link)
             return self._prepare_metadata(output_filename, info_dict)
         except Exception as e:
             print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
@@ -21,13 +31,6 @@ class YouTubeHandler(MediaHandler):
             print("Couldn't get video from url: " + link)
             print()
             return None
-
-    def _clean_up_url(self, link: str) -> str:
-        link = re.sub(r"si=([\w\-_]*)", "", link)  # Remove si parameter
-        link = re.sub(r"[?&]+$", "", link)  # Remove trailing "?" or "&"
-        link = re.sub(r"&+", "&", link)  # Remove multiple "&"
-        link = re.sub(r"\?&", "?", link)  # Replace ?& with ?
-        return link
 
     def _prepare_metadata(self, output_filename, info_dict) -> PostData:
         return PostData(

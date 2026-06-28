@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 
 @dataclass
@@ -62,6 +63,10 @@ class PostData:
 
 class MediaHandler(ABC):
     SITE_NAME = "unknown"
+
+    def normalize_url(self, link: str) -> str:
+        parsed = urlsplit(link)
+        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
 
     @abstractmethod
     def handle(self, link: str) -> PostData | None:

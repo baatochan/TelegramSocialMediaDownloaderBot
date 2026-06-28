@@ -115,7 +115,6 @@ def handle_supported_site(message):
             ninegag_handler,
             overrideSpoiler,
             removeDescription,
-            strip_query_params=True,
         )
 
     twitterLinks = extract_site_links(msgContent, twitter_handler.URL_REGEX)
@@ -126,7 +125,6 @@ def handle_supported_site(message):
             twitter_handler,
             overrideSpoiler,
             removeDescription,
-            strip_query_params=True,
         )
 
     igLinks = extract_site_links(msgContent, instagram_handler.URL_REGEX)
@@ -137,7 +135,6 @@ def handle_supported_site(message):
             instagram_handler,
             overrideSpoiler,
             removeDescription,
-            strip_query_params=True,
         )
 
     booruLinks = extract_site_links(msgContent, booru_handler.URL_REGEX)
@@ -148,7 +145,6 @@ def handle_supported_site(message):
             booru_handler,
             overrideSpoiler,
             removeDescription,
-            strip_query_params=True,
         )
 
     demotyLinks = extract_site_links(msgContent, demoty_handler.URL_REGEX)
@@ -159,7 +155,6 @@ def handle_supported_site(message):
             demoty_handler,
             overrideSpoiler,
             removeDescription,
-            strip_query_params=True,
         )
 
     ttLinks = extract_site_links(msgContent, tiktok_handler.URL_REGEX)
@@ -170,7 +165,6 @@ def handle_supported_site(message):
             tiktok_handler,
             overrideSpoiler,
             removeDescription,
-            strip_query_params=True,
         )
 
     if YOUTUBE_SUPPORT_ENABLED:
@@ -182,7 +176,6 @@ def handle_supported_site(message):
                 youtube_handler,
                 overrideSpoiler,
                 removeDescription,
-                strip_query_params=False,
             )
 
 
@@ -208,13 +201,9 @@ def extract_site_links(msg_content: list[str], url_regex: str) -> list[str]:
 
 
 def process_site_link(message, link: str, handler, override_spoiler,
-                      remove_description: bool,
-                      strip_query_params: bool) -> None:
+                      remove_description: bool) -> None:
     site_label = handler.SITE_NAME
-
-    link_to_handle = link
-    if strip_query_params:
-        link_to_handle = link.split("?")[0]
+    link_to_handle = handler.normalize_url(link)
 
     post_data = handler.handle(link_to_handle)
     if post_data is None:
