@@ -106,74 +106,26 @@ def handle_supported_site(message):
 
     msgContent = message.text.split()
 
-    ninegagLinks = extract_site_links(msgContent, ninegag_handler.URL_REGEX)
-    for link in ninegagLinks:
-        process_site_link(
-            message,
-            link,
-            ninegag_handler,
-            overrideSpoiler,
-            removeDescription,
-        )
+    handlers_to_process = [
+        booru_handler,
+        instagram_handler,
+        ninegag_handler,
+        tiktok_handler,
+        twitter_handler,
+        demoty_handler,
+        youtube_handler,
+    ]
 
-    twitterLinks = extract_site_links(msgContent, twitter_handler.URL_REGEX)
-    for link in twitterLinks:
-        process_site_link(
-            message,
-            link,
-            twitter_handler,
-            overrideSpoiler,
-            removeDescription,
-        )
+    for handler in handlers_to_process:
+        if not handler.enabled:
+            continue
 
-    if instagram_handler.enabled:
-        igLinks = extract_site_links(msgContent, instagram_handler.URL_REGEX)
-        for link in igLinks:
+        links = extract_site_links(msgContent, handler.URL_REGEX)
+        for link in links:
             process_site_link(
                 message,
                 link,
-                instagram_handler,
-                overrideSpoiler,
-                removeDescription,
-            )
-
-    booruLinks = extract_site_links(msgContent, booru_handler.URL_REGEX)
-    for link in booruLinks:
-        process_site_link(
-            message,
-            link,
-            booru_handler,
-            overrideSpoiler,
-            removeDescription,
-        )
-
-    demotyLinks = extract_site_links(msgContent, demoty_handler.URL_REGEX)
-    for link in demotyLinks:
-        process_site_link(
-            message,
-            link,
-            demoty_handler,
-            overrideSpoiler,
-            removeDescription,
-        )
-
-    ttLinks = extract_site_links(msgContent, tiktok_handler.URL_REGEX)
-    for link in ttLinks:
-        process_site_link(
-            message,
-            link,
-            tiktok_handler,
-            overrideSpoiler,
-            removeDescription,
-        )
-
-    if youtube_handler.enabled:
-        ytLinks = extract_site_links(msgContent, youtube_handler.URL_REGEX)
-        for link in ytLinks:
-            process_site_link(
-                message,
-                link,
-                youtube_handler,
+                handler,
                 overrideSpoiler,
                 removeDescription,
             )
