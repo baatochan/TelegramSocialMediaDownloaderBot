@@ -9,6 +9,8 @@ allowed_chats = [-10002137, -100042069]
 owner_username = @example
 
 [instagram]
+# set to False to completely disable instagram support, useful when restarting bot many times so ig wont ban the ip
+enabled = True
 # credentials for instagrapi (ig api), it is advised to create a throw away account for this as it may get banned
 # change do_login to true if you want to log in
 do_login = False

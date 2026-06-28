@@ -49,6 +49,7 @@ else:
 ALLOWED_USERS = json.loads(config['config']['allowed_users'])
 ALLOWED_CHATS = json.loads(config['config']['allowed_chats'])
 
+INSTAGRAM_SUPPORT_ENABLED = config['instagram'].getboolean('enabled')
 YOUTUBE_SUPPORT_ENABLED = config['youtube'].getboolean('enabled')
 
 bot = telebot.TeleBot(config['config']['token'])
@@ -59,7 +60,11 @@ bot.parse_mode = PARSE_MODE
 ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
 
 booru_handler = BooruHandler()
-instagram_handler = InstagramHandler.create_from_config(config['instagram'])
+if INSTAGRAM_SUPPORT_ENABLED:
+    instagram_handler = InstagramHandler.create_from_config(
+        config['instagram'])
+else:
+    instagram_handler = InstagramHandler(None)
 ninegag_handler = NineGagHandler(
     use_selenium=config['9gag'].getboolean('use_selenium'))
 tiktok_handler = TikTokHandler()
@@ -127,15 +132,16 @@ def handle_supported_site(message):
             removeDescription,
         )
 
-    igLinks = extract_site_links(msgContent, instagram_handler.URL_REGEX)
-    for link in igLinks:
-        process_site_link(
-            message,
-            link,
-            instagram_handler,
-            overrideSpoiler,
-            removeDescription,
-        )
+    if INSTAGRAM_SUPPORT_ENABLED:
+        igLinks = extract_site_links(msgContent, instagram_handler.URL_REGEX)
+        for link in igLinks:
+            process_site_link(
+                message,
+                link,
+                instagram_handler,
+                overrideSpoiler,
+                removeDescription,
+            )
 
     booruLinks = extract_site_links(msgContent, booru_handler.URL_REGEX)
     for link in booruLinks:
