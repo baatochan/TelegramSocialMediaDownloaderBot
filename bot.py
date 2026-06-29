@@ -47,7 +47,7 @@ bot.parse_mode = PARSE_MODE
 ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
 
 post_data_sender = PostDataSender(bot, ERROR_MESSAGE)
-related_post_resolver = RelatedPostResolver(post_data_sender)
+related_post_resolver = RelatedPostResolver()
 
 handler_registry = HandlerRegistry.create_from_config(config)
 handlers_to_process = handler_registry.get_active_handlers()
@@ -151,21 +151,19 @@ def process_site_link(message, link: str, handler, override_spoiler,
 
 def send_post_with_fallback(message, post_data, handler, link_to_handle) -> None:
     try:
-        if post_data.reply or post_data.quote:
-            msg_to_reply_to, caption_suffix = related_post_resolver.prepare_send_context(
+        chain = related_post_resolver.resolve(
+            post_data,
+            handler,
+            skip_resolution=message.chat.id in ALLOWED_CHATS,
+        )
+        msg_to_reply_to = message
+        for entry in chain:
+            msg_to_reply_to = post_data_sender.send(
                 message,
-                post_data,
-                handler,
-                skip_resolution=message.chat.id in ALLOWED_CHATS,
-            )
-            post_data_sender.send(
-                message,
-                post_data,
+                entry.post_data,
                 msg_to_reply_to=msg_to_reply_to,
-                caption_suffix=caption_suffix,
+                caption_suffix=entry.caption_suffix,
             )
-        else:
-            post_data_sender.send(message, post_data)
     except Exception as e:
         print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
         traceback.print_exception(type(e), e, e.__traceback__)
