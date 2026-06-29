@@ -141,28 +141,27 @@ def process_site_link(message, link: str, handler, override_spoiler,
     if remove_description:
         post_data.text = ""
 
-    handler_response = post_data.to_legacy_dict()
     send_post_with_fallback(
         message,
-        handler_response,
+        post_data,
         handler,
         link_to_handle,
     )
 
 
-def send_post_with_fallback(message, handler_response, handler, link_to_handle) -> None:
+def send_post_with_fallback(message, post_data, handler, link_to_handle) -> None:
     try:
-        if handler_response['reply'] or handler_response['quote']:
+        if post_data.reply or post_data.quote:
             msg_to_reply_to, caption_suffix = prepare_twitter_send_context(
-                message, handler_response)
-            post_data_sender.send_post_to_tg(
+                message, post_data)
+            post_data_sender.send(
                 message,
-                handler_response,
+                post_data,
                 msg_to_reply_to=msg_to_reply_to,
                 caption_suffix=caption_suffix,
             )
         else:
-            post_data_sender.send_post_to_tg(message, handler_response)
+            post_data_sender.send(message, post_data)
     except Exception as e:
         print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
         traceback.print_exception(type(e), e, e.__traceback__)
@@ -174,7 +173,7 @@ def send_post_with_fallback(message, handler_response, handler, link_to_handle) 
         if fallback_post_data is None:
             return
 
-        post_data_sender.send_post_to_tg(message, fallback_post_data.to_legacy_dict())
+        post_data_sender.send(message, fallback_post_data)
 
 
 @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
@@ -193,43 +192,43 @@ def handle_derpibooru_magic_character_request(message):
             "https://derpibooru.org/{}".format(msg_text), allow_nsfw=False)
 
     if post_data is not None:
-        post_data_sender.send_post_to_tg(message, post_data.to_legacy_dict())
+        post_data_sender.send(message, post_data)
     else:
         print("Can't handle derpibooru img {}".format(msg_text))
 
 
-def prepare_twitter_send_context(orig_tg_msg, handler_response):
+def prepare_twitter_send_context(orig_tg_msg, post_data):
     msg_to_reply_to = orig_tg_msg
     caption_suffix = ""
 
     handle_reply, handle_quote = check_if_reply_quote_should_be_handled(
-        orig_tg_msg, handler_response)
+        orig_tg_msg, post_data)
 
-    if handler_response['quote']:
+    if post_data.quote:
         if handle_quote:
             msg_to_reply_to, caption_suffix = resolve_and_send_related_twitter_post(
                 orig_tg_msg,
-                handler_response['quote_url'],
+                post_data.quote_url,
                 msg_to_reply_to,
                 caption_suffix,
                 add_info_about_quote_to_caption,
             )
         else:
             caption_suffix = add_info_about_quote_to_caption(
-                caption_suffix, handler_response['quote_url'])
+                caption_suffix, post_data.quote_url)
 
-    if handler_response['reply']:
+    if post_data.reply:
         if handle_reply:
             msg_to_reply_to, caption_suffix = resolve_and_send_related_twitter_post(
                 orig_tg_msg,
-                handler_response['reply_url'],
+                post_data.reply_url,
                 msg_to_reply_to,
                 caption_suffix,
                 add_info_about_reply_to_caption,
             )
         else:
             caption_suffix = add_info_about_reply_to_caption(
-                caption_suffix, handler_response['reply_url'])
+                caption_suffix, post_data.reply_url)
 
     return msg_to_reply_to, caption_suffix
 
@@ -241,12 +240,11 @@ def resolve_and_send_related_twitter_post(orig_tg_msg, related_url, msg_to_reply
         caption_suffix = add_info_to_caption(caption_suffix, related_url)
         return msg_to_reply_to, caption_suffix
 
-    handler_response_for_related_tweet = post_data_for_related_tweet.to_legacy_dict()
     related_msg_to_reply_to, related_caption_suffix = prepare_twitter_send_context(
-        orig_tg_msg, handler_response_for_related_tweet)
-    msg_to_reply_to = post_data_sender.send_post_to_tg(
+        orig_tg_msg, post_data_for_related_tweet)
+    msg_to_reply_to = post_data_sender.send(
         orig_tg_msg,
-        handler_response_for_related_tweet,
+        post_data_for_related_tweet,
         msg_to_reply_to=related_msg_to_reply_to,
         caption_suffix=related_caption_suffix,
     )
@@ -254,15 +252,15 @@ def resolve_and_send_related_twitter_post(orig_tg_msg, related_url, msg_to_reply
     return msg_to_reply_to, caption_suffix
 
 
-def check_if_reply_quote_should_be_handled(orig_tg_msg, handler_response):
+def check_if_reply_quote_should_be_handled(orig_tg_msg, post_data):
     if orig_tg_msg.chat.id in ALLOWED_CHATS:
         return False, False
 
     handle_reply, handle_quote = False, False
 
-    if handler_response['quote']:
+    if post_data.quote:
         handle_quote = True
-    if handler_response['reply']:
+    if post_data.reply:
         handle_quote = False
         handle_reply = True
 
