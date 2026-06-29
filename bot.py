@@ -516,8 +516,6 @@ def send_multiple_media_post(orig_tg_msg, handler_response, caption, msg_to_repl
     elif len(media_group) > 0:
         if len(caption.long) <= 1024:
             media_group[0].caption = caption.long
-            # workaround for a bug in telebot, will be fixed in a newer than 4.17.0 release
-            media_group[0].parse_mode = PARSE_MODE
             sent_message_arr = bot.send_media_group(chat_id=orig_tg_msg.chat.id,
                                                     media=media_group,
                                                     reply_parameters=ReplyParameters(
@@ -555,8 +553,6 @@ def send_split_multiple_media_post(orig_tg_msg, media_group, caption, msg_to_rep
                     for i in range(0, len(media_group), 10)]
     for i in range(len(media_groups)):
         media_groups[i][0].caption = caption.short
-        # workaround for a bug in telebot, will be fixed in a newer than 4.17.0 release
-        media_groups[i][0].parse_mode = PARSE_MODE
         sent_message_arr = bot.send_media_group(chat_id=orig_tg_msg.chat.id,
                                                 media=media_groups[i],
                                                 reply_parameters=ReplyParameters(
