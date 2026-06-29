@@ -5,6 +5,8 @@ from telebot.formatting import escape_markdown
 
 from handlers.base import MediaHandler, PostData
 
+MAX_RELATED_ANCESTORS = 512
+
 
 class RelatedPostKind(Enum):
     QUOTE = "quote"
@@ -32,6 +34,7 @@ class RelatedPostResolver:
             handler,
             skip_resolution=skip_resolution,
             visited=visited,
+            ancestor_count=0,
         )
 
         posts = list(reversed(ancestor_chain))
@@ -52,7 +55,7 @@ class RelatedPostResolver:
         return refs
 
     def _fetch_ancestors(self, post_data: PostData, handler: MediaHandler, *, skip_resolution: bool,
-                         visited: set[str]) -> tuple[str, list[ResolvedPost]]:
+                         visited: set[str], ancestor_count: int) -> tuple[str, list[ResolvedPost]]:
         caption_suffix = ""
         chain: list[ResolvedPost] = []
 
@@ -64,6 +67,10 @@ class RelatedPostResolver:
             normalized_url = handler.normalize_url(ref.url)
 
             if normalized_url in visited:
+                caption_suffix = self._add_caption_note(caption_suffix, ref)
+                continue
+
+            if ancestor_count >= MAX_RELATED_ANCESTORS:
                 caption_suffix = self._add_caption_note(caption_suffix, ref)
                 continue
 
@@ -80,6 +87,7 @@ class RelatedPostResolver:
                 handler,
                 skip_resolution=False,
                 visited=visited,
+                ancestor_count=ancestor_count + 1,
             )
             chain = [ResolvedPost(related_post_data, nested_caption_suffix)] + deeper_chain
 
