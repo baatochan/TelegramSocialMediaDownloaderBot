@@ -16,9 +16,9 @@ from tendo import singleton
 from handlers import (
     BooruHandler,
     HandlerRegistry,
-    TwitterHandler,
 )
 from post_data_sender import PostDataSender
+from related_post_resolver import RelatedPostResolver
 
 
 class OverrideSpoiler(Enum):
@@ -47,6 +47,7 @@ bot.parse_mode = PARSE_MODE
 ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
 
 post_data_sender = PostDataSender(bot, ERROR_MESSAGE)
+related_post_resolver = RelatedPostResolver(post_data_sender)
 
 handler_registry = HandlerRegistry.create_from_config(config)
 handlers_to_process = handler_registry.get_active_handlers()
@@ -54,7 +55,6 @@ supported_sites_regex = handler_registry.get_active_combined_regex()
 
 # Site-specific workflows still need direct access to selected handlers.
 booru_handler = handler_registry.get_handler(BooruHandler.SITE_NAME)
-twitter_handler = handler_registry.get_handler(TwitterHandler.SITE_NAME)
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -152,8 +152,12 @@ def process_site_link(message, link: str, handler, override_spoiler,
 def send_post_with_fallback(message, post_data, handler, link_to_handle) -> None:
     try:
         if post_data.reply or post_data.quote:
-            msg_to_reply_to, caption_suffix = prepare_twitter_send_context(
-                message, post_data)
+            msg_to_reply_to, caption_suffix = related_post_resolver.prepare_send_context(
+                message,
+                post_data,
+                handler,
+                skip_resolution=message.chat.id in ALLOWED_CHATS,
+            )
             post_data_sender.send(
                 message,
                 post_data,
@@ -195,88 +199,6 @@ def handle_derpibooru_magic_character_request(message):
         post_data_sender.send(message, post_data)
     else:
         print("Can't handle derpibooru img {}".format(msg_text))
-
-
-def prepare_twitter_send_context(orig_tg_msg, post_data):
-    msg_to_reply_to = orig_tg_msg
-    caption_suffix = ""
-
-    handle_reply, handle_quote = check_if_reply_quote_should_be_handled(
-        orig_tg_msg, post_data)
-
-    if post_data.quote:
-        if handle_quote:
-            msg_to_reply_to, caption_suffix = resolve_and_send_related_twitter_post(
-                orig_tg_msg,
-                post_data.quote_url,
-                msg_to_reply_to,
-                caption_suffix,
-                add_info_about_quote_to_caption,
-            )
-        else:
-            caption_suffix = add_info_about_quote_to_caption(
-                caption_suffix, post_data.quote_url)
-
-    if post_data.reply:
-        if handle_reply:
-            msg_to_reply_to, caption_suffix = resolve_and_send_related_twitter_post(
-                orig_tg_msg,
-                post_data.reply_url,
-                msg_to_reply_to,
-                caption_suffix,
-                add_info_about_reply_to_caption,
-            )
-        else:
-            caption_suffix = add_info_about_reply_to_caption(
-                caption_suffix, post_data.reply_url)
-
-    return msg_to_reply_to, caption_suffix
-
-
-def resolve_and_send_related_twitter_post(orig_tg_msg, related_url, msg_to_reply_to, caption_suffix, add_info_to_caption):
-    post_data_for_related_tweet = twitter_handler.handle(related_url)
-    if post_data_for_related_tweet is None:
-        print("Can't handle twitter link: " + related_url)
-        caption_suffix = add_info_to_caption(caption_suffix, related_url)
-        return msg_to_reply_to, caption_suffix
-
-    related_msg_to_reply_to, related_caption_suffix = prepare_twitter_send_context(
-        orig_tg_msg, post_data_for_related_tweet)
-    msg_to_reply_to = post_data_sender.send(
-        orig_tg_msg,
-        post_data_for_related_tweet,
-        msg_to_reply_to=related_msg_to_reply_to,
-        caption_suffix=related_caption_suffix,
-    )
-
-    return msg_to_reply_to, caption_suffix
-
-
-def check_if_reply_quote_should_be_handled(orig_tg_msg, post_data):
-    if orig_tg_msg.chat.id in ALLOWED_CHATS:
-        return False, False
-
-    handle_reply, handle_quote = False, False
-
-    if post_data.quote:
-        handle_quote = True
-    if post_data.reply:
-        handle_quote = False
-        handle_reply = True
-
-    return handle_reply, handle_quote
-
-
-def add_info_about_quote_to_caption(caption, quote_url):
-    caption += "\n\n*Note:* This message is a quote tweet of: " + \
-        escape_markdown(quote_url)
-    return caption
-
-
-def add_info_about_reply_to_caption(caption, reply_url):
-    caption += "\n\n*Note:* This message is a reply to: " + \
-        escape_markdown(reply_url)
-    return caption
 
 
 @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
