@@ -17,6 +17,7 @@ from handlers import (
     BooruHandler,
     HandlerRegistry,
 )
+from post_orchestrator import PostOrchestrator
 from post_data_sender import PostDataSender
 from related_post_resolver import RelatedPostResolver
 
@@ -48,6 +49,11 @@ ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
 
 post_data_sender = PostDataSender(bot, ERROR_MESSAGE)
 related_post_resolver = RelatedPostResolver()
+post_orchestrator = PostOrchestrator(
+    post_data_sender,
+    related_post_resolver,
+    ALLOWED_CHATS,
+)
 
 handler_registry = HandlerRegistry.create_from_config(config)
 handlers_to_process = handler_registry.get_active_handlers()
@@ -141,41 +147,12 @@ def process_site_link(message, link: str, handler, override_spoiler,
     if remove_description:
         post_data.text = ""
 
-    send_post_with_fallback(
+    post_orchestrator.send_post_with_fallback(
         message,
         post_data,
         handler,
         link_to_handle,
     )
-
-
-def send_post_with_fallback(message, post_data, handler, link_to_handle) -> None:
-    try:
-        chain = related_post_resolver.resolve(
-            post_data,
-            handler,
-            skip_resolution=message.chat.id in ALLOWED_CHATS,
-        )
-        msg_to_reply_to = message
-        for entry in chain:
-            msg_to_reply_to = post_data_sender.send(
-                message,
-                entry.post_data,
-                msg_to_reply_to=msg_to_reply_to,
-                caption_suffix=entry.caption_suffix,
-            )
-    except Exception as e:
-        print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
-        traceback.print_exception(type(e), e, e.__traceback__)
-        print()
-        print("Couldn't send " + handler.SITE_NAME +
-              " post, trying fallback: " + str(link_to_handle))
-
-        fallback_post_data = handler.handle_fallback(link_to_handle)
-        if fallback_post_data is None:
-            return
-
-        post_data_sender.send(message, fallback_post_data)
 
 
 @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
