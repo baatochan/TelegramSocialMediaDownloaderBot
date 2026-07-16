@@ -8,6 +8,33 @@ class PostOrchestrator:
         self.related_post_resolver = related_post_resolver
         self.allowed_chats = allowed_chats
 
+    def process_site_link(self, message, link: str, handler,
+                          apply_spoiler_override: bool,
+                          spoiler_value: bool,
+                          remove_description: bool) -> None:
+        site_label = handler.SITE_NAME
+        link_to_handle = handler.normalize_url(link)
+
+        post_data = handler.handle(link_to_handle)
+        if post_data is None:
+            print("Can't handle " + site_label + " link: " + str(link))
+
+            post_data = handler.handle_fallback(link_to_handle)
+            if post_data is None:
+                return
+
+        if apply_spoiler_override:
+            post_data.spoiler = spoiler_value
+        if remove_description:
+            post_data.text = ""
+
+        self.send_post_with_fallback(
+            message,
+            post_data,
+            handler,
+            link_to_handle,
+        )
+
     def send_post_with_fallback(self, message, post_data, handler, link_to_handle) -> None:
         try:
             chain = self.related_post_resolver.resolve(

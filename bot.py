@@ -94,17 +94,21 @@ def handle_supported_site(message):
     if "BBnoDesc=True" in message.text:
         removeDescription = True
 
+    apply_spoiler_override = overrideSpoiler != OverrideSpoiler.NO_OVERRIDE
+    spoiler_value = overrideSpoiler == OverrideSpoiler.SPOILER
+
     msgContent = message.text.split()
 
     for handler in handlers_to_process:
         links = extract_site_links(msgContent, handler.URL_REGEX)
         for link in links:
-            process_site_link(
+            post_orchestrator.process_site_link(
                 message,
                 link,
                 handler,
-                overrideSpoiler,
-                removeDescription,
+                apply_spoiler_override=apply_spoiler_override,
+                spoiler_value=spoiler_value,
+                remove_description=removeDescription,
             )
 
 
@@ -127,32 +131,6 @@ def extract_site_links(msg_content: list[str], url_regex: str) -> list[str]:
             links.append(normalized_token)
 
     return links
-
-
-def process_site_link(message, link: str, handler, override_spoiler,
-                      remove_description: bool) -> None:
-    site_label = handler.SITE_NAME
-    link_to_handle = handler.normalize_url(link)
-
-    post_data = handler.handle(link_to_handle)
-    if post_data is None:
-        print("Can't handle " + site_label + " link: " + str(link))
-
-        post_data = handler.handle_fallback(link_to_handle)
-        if post_data is None:
-            return
-
-    if override_spoiler != OverrideSpoiler.NO_OVERRIDE:
-        post_data.spoiler = override_spoiler == OverrideSpoiler.SPOILER
-    if remove_description:
-        post_data.text = ""
-
-    post_orchestrator.send_post_with_fallback(
-        message,
-        post_data,
-        handler,
-        link_to_handle,
-    )
 
 
 @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
