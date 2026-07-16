@@ -7,6 +7,7 @@ from handlers.base import MediaHandler, PostData
 class InstagramHandler(MediaHandler):
     SITE_NAME = "instagram"
     URL_REGEX = r"((http(s)?://)|^| )(www\.)?instagram\.com/.+"
+    SESSION_SETTINGS_PATH = "ig_session.json"
 
     def __init__(self, ig_client, enabled: bool = True):
         self.ig_client = ig_client
@@ -22,15 +23,29 @@ class InstagramHandler(MediaHandler):
         ig_client.set_country_code(48)
         ig_client.set_timezone_offset(2 * 60 * 60)
 
-    @staticmethod
-    def login_ig_user(ig_client, ig_config):
+    @classmethod
+    def _load_session_settings(cls, ig_client):
         try:
-            session = ig_client.load_settings("ig_session.json")
+            return ig_client.load_settings(cls.SESSION_SETTINGS_PATH)
         except FileNotFoundError:
-            session = None
+            return None
         except Exception as e:
-            print("Couldn't load session file: ", str(e))
-            session = None
+            print("Couldn't load session file: " + str(e))
+            return None
+
+    @classmethod
+    def ensure_session_settings(cls, ig_client):
+        session = cls._load_session_settings(ig_client)
+        if session is not None:
+            ig_client.set_settings(session)
+            return session
+
+        cls.set_basic_settings(ig_client)
+        ig_client.dump_settings(cls.SESSION_SETTINGS_PATH)
+        return None
+
+    @classmethod
+    def login_ig_user(cls, ig_client, ig_config, session):
 
         login_via_session = False
         login_via_pw = False
@@ -53,7 +68,9 @@ class InstagramHandler(MediaHandler):
 
                     # use the same device uuids across logins
                     ig_client.set_settings({})
-                    ig_client.set_uuids(old_session["uuids"])
+                    old_uuids = old_session.get("uuids")
+                    if old_uuids is not None:
+                        ig_client.set_uuids(old_uuids)
 
                     ig_client.login(username=ig_config['username'],
                                     password=ig_config['password'])
@@ -77,8 +94,8 @@ class InstagramHandler(MediaHandler):
                 "Couldn't login ig user with either password or session")
 
         if new_session_created:
-            InstagramHandler.set_basic_settings(ig_client)
-            ig_client.dump_settings("ig_session.json")
+            cls.set_basic_settings(ig_client)
+            ig_client.dump_settings(cls.SESSION_SETTINGS_PATH)
 
     @classmethod
     def create_from_config(cls, ig_config):
@@ -89,11 +106,12 @@ class InstagramHandler(MediaHandler):
         ig_client = Client()
         ig_client.set_user_agent(ig_config['user_agent'])
 
+        session = cls.ensure_session_settings(ig_client)
+
         if ig_config.getboolean('do_login'):
-            cls.login_ig_user(ig_client, ig_config)
+            cls.login_ig_user(ig_client, ig_config, session)
             print("Started an ig client with an account with following settings:")
         else:
-            cls.set_basic_settings(ig_client)
             print("Started an ig client without an account with following settings:")
 
         print(ig_client.get_settings())
