@@ -23,12 +23,7 @@ class PostOrchestrator:
             if post_data is None:
                 return
 
-        if post_handling_policies.spoiler_policy == SpoilerPolicy.FORCE_SPOILER:
-            post_data.spoiler = True
-        elif post_handling_policies.spoiler_policy == SpoilerPolicy.FORCE_NO_SPOILER:
-            post_data.spoiler = False
-        if post_handling_policies.description_policy == DescriptionPolicy.REMOVE_DESCRIPTION:
-            post_data.text = ""
+        self._apply_post_handling_policies(post_data, post_handling_policies)
 
         self.send_post_with_fallback(
             message,
@@ -36,6 +31,16 @@ class PostOrchestrator:
             handler,
             link_to_handle,
         )
+
+    def _apply_post_handling_policies(self, post_data,
+                                      post_handling_policies: PostHandlingPolicies) -> None:
+        if post_handling_policies.spoiler_policy == SpoilerPolicy.FORCE_SPOILER:
+            post_data.spoiler = True
+        elif post_handling_policies.spoiler_policy == SpoilerPolicy.FORCE_NO_SPOILER:
+            post_data.spoiler = False
+
+        if post_handling_policies.description_policy == DescriptionPolicy.REMOVE_DESCRIPTION:
+            post_data.text = ""
 
     def send_post_with_fallback(self, message, post_data, handler, link_to_handle) -> None:
         try:

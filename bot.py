@@ -78,20 +78,7 @@ def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
 
-    spoiler_policy = SpoilerPolicy.KEEP_ORIGINAL
-    if "BBspoiler=True" in message.text:
-        spoiler_policy = SpoilerPolicy.FORCE_SPOILER
-    elif "BBspoiler=False" in message.text:
-        spoiler_policy = SpoilerPolicy.FORCE_NO_SPOILER
-
-    description_policy = DescriptionPolicy.KEEP_ORIGINAL
-    if "BBnoDesc=True" in message.text:
-        description_policy = DescriptionPolicy.REMOVE_DESCRIPTION
-
-    post_handling_policies = PostHandlingPolicies(
-        spoiler_policy=spoiler_policy,
-        description_policy=description_policy,
-    )
+    post_handling_policies = parse_post_handling_policies(message.text)
 
     msgContent = message.text.split()
 
@@ -104,6 +91,25 @@ def handle_supported_site(message):
                 handler,
                 post_handling_policies=post_handling_policies,
             )
+
+
+def parse_post_handling_policies(message_text: str) -> PostHandlingPolicies:
+    if "BBspoiler=True" in message_text:
+        spoiler_policy = SpoilerPolicy.FORCE_SPOILER
+    elif "BBspoiler=False" in message_text:
+        spoiler_policy = SpoilerPolicy.FORCE_NO_SPOILER
+    else:
+        spoiler_policy = SpoilerPolicy.KEEP_ORIGINAL
+
+    if "BBnoDesc=True" in message_text:
+        description_policy = DescriptionPolicy.REMOVE_DESCRIPTION
+    else:
+        description_policy = DescriptionPolicy.KEEP_ORIGINAL
+
+    return PostHandlingPolicies(
+        spoiler_policy=spoiler_policy,
+        description_policy=description_policy,
+    )
 
 
 def normalize_message_token(token: str) -> str:
