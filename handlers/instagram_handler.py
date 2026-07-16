@@ -17,7 +17,7 @@ class InstagramHandler(MediaHandler):
             self.enabled = False
 
     @staticmethod
-    def set_basic_settings(ig_client):
+    def _set_basic_settings(ig_client):
         ig_client.set_locale('en_US')
         ig_client.set_country('PL')
         ig_client.set_country_code(48)
@@ -34,18 +34,18 @@ class InstagramHandler(MediaHandler):
             return None
 
     @classmethod
-    def ensure_session_settings(cls, ig_client):
+    def _ensure_session_settings(cls, ig_client):
         session = cls._load_session_settings(ig_client)
         if session is not None:
             ig_client.set_settings(session)
             return session
 
-        cls.set_basic_settings(ig_client)
+        cls._set_basic_settings(ig_client)
         ig_client.dump_settings(cls.SESSION_SETTINGS_PATH)
         return None
 
     @classmethod
-    def login_ig_user(cls, ig_client, ig_config, session):
+    def _login_ig_user(cls, ig_client, ig_config, session):
 
         login_via_session = False
         login_via_pw = False
@@ -94,7 +94,7 @@ class InstagramHandler(MediaHandler):
                 "Couldn't login ig user with either password or session")
 
         if new_session_created:
-            cls.set_basic_settings(ig_client)
+            cls._set_basic_settings(ig_client)
             ig_client.dump_settings(cls.SESSION_SETTINGS_PATH)
 
     @classmethod
@@ -106,10 +106,10 @@ class InstagramHandler(MediaHandler):
         ig_client = Client()
         ig_client.set_user_agent(ig_config['user_agent'])
 
-        session = cls.ensure_session_settings(ig_client)
+        session = cls._ensure_session_settings(ig_client)
 
         if ig_config.getboolean('do_login'):
-            cls.login_ig_user(ig_client, ig_config, session)
+            cls._login_ig_user(ig_client, ig_config, session)
             print("Started an ig client with an account with following settings:")
         else:
             print("Started an ig client without an account with following settings:")
