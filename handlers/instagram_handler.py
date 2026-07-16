@@ -16,22 +16,25 @@ class InstagramHandler(MediaHandler):
             print("InstagramHandler is disabled.")
             self.enabled = False
 
-    @staticmethod
-    def _set_basic_settings(ig_client):
-        ig_client.set_locale('en_US')
-        ig_client.set_country('PL')
-        ig_client.set_country_code(48)
-        ig_client.set_timezone_offset(2 * 60 * 60)
-
     @classmethod
-    def _load_session_settings(cls, ig_client):
-        try:
-            return ig_client.load_settings(cls.SESSION_SETTINGS_PATH)
-        except FileNotFoundError:
-            return None
-        except Exception as e:
-            print("Couldn't load session file: " + str(e))
-            return None
+    def create_from_config(cls, ig_config):
+        enabled = ig_config.getboolean('enabled', fallback=True)
+        if not enabled:
+            return cls(None, enabled=False)
+
+        ig_client = Client()
+        ig_client.set_user_agent(ig_config['user_agent'])
+
+        session = cls._ensure_session_settings(ig_client)
+
+        if ig_config.getboolean('do_login'):
+            cls._login_ig_user(ig_client, ig_config, session)
+            print("Started an ig client with an account with following settings:")
+        else:
+            print("Started an ig client without an account with following settings:")
+
+        print(ig_client.get_settings())
+        return cls(ig_client)
 
     @classmethod
     def _ensure_session_settings(cls, ig_client):
@@ -43,6 +46,16 @@ class InstagramHandler(MediaHandler):
         cls._set_basic_settings(ig_client)
         ig_client.dump_settings(cls.SESSION_SETTINGS_PATH)
         return None
+
+    @classmethod
+    def _load_session_settings(cls, ig_client):
+        try:
+            return ig_client.load_settings(cls.SESSION_SETTINGS_PATH)
+        except FileNotFoundError:
+            return None
+        except Exception as e:
+            print("Couldn't load session file: " + str(e))
+            return None
 
     @classmethod
     def _login_ig_user(cls, ig_client, ig_config, session):
@@ -97,25 +110,12 @@ class InstagramHandler(MediaHandler):
             cls._set_basic_settings(ig_client)
             ig_client.dump_settings(cls.SESSION_SETTINGS_PATH)
 
-    @classmethod
-    def create_from_config(cls, ig_config):
-        enabled = ig_config.getboolean('enabled', fallback=True)
-        if not enabled:
-            return cls(None, enabled=False)
-
-        ig_client = Client()
-        ig_client.set_user_agent(ig_config['user_agent'])
-
-        session = cls._ensure_session_settings(ig_client)
-
-        if ig_config.getboolean('do_login'):
-            cls._login_ig_user(ig_client, ig_config, session)
-            print("Started an ig client with an account with following settings:")
-        else:
-            print("Started an ig client without an account with following settings:")
-
-        print(ig_client.get_settings())
-        return cls(ig_client)
+    @staticmethod
+    def _set_basic_settings(ig_client):
+        ig_client.set_locale('en_US')
+        ig_client.set_country('PL')
+        ig_client.set_country_code(48)
+        ig_client.set_timezone_offset(2 * 60 * 60)
 
     def handle_fallback(self, link: str) -> PostData | None:
         # Workaround when Instagrapi (or ig session/account) doesn't work
