@@ -7,7 +7,6 @@ import signal
 import sys
 import time
 import traceback
-from enum import Enum
 
 import telebot
 from telebot.formatting import escape_markdown
@@ -17,15 +16,10 @@ from handlers import (
     BooruHandler,
     HandlerRegistry,
 )
+from post_handling_policies import DescriptionPolicy, PostHandlingPolicies, SpoilerPolicy
 from post_orchestrator import PostOrchestrator
 from post_data_sender import PostDataSender
 from related_post_resolver import RelatedPostResolver
-
-
-class OverrideSpoiler(Enum):
-    NO_OVERRIDE = 0
-    SPOILER = 1
-    NO_SPOILER = 2
 
 
 me = singleton.SingleInstance()  # will sys.exit(-1) if other instance is running
@@ -84,18 +78,20 @@ def handle_supported_site(message):
     if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
         return
 
-    overrideSpoiler = OverrideSpoiler.NO_OVERRIDE
+    spoiler_policy = SpoilerPolicy.KEEP_ORIGINAL
     if "BBspoiler=True" in message.text:
-        overrideSpoiler = OverrideSpoiler.SPOILER
+        spoiler_policy = SpoilerPolicy.FORCE_SPOILER
     elif "BBspoiler=False" in message.text:
-        overrideSpoiler = OverrideSpoiler.NO_SPOILER
+        spoiler_policy = SpoilerPolicy.FORCE_NO_SPOILER
 
-    removeDescription = False
+    description_policy = DescriptionPolicy.KEEP_ORIGINAL
     if "BBnoDesc=True" in message.text:
-        removeDescription = True
+        description_policy = DescriptionPolicy.REMOVE_DESCRIPTION
 
-    apply_spoiler_override = overrideSpoiler != OverrideSpoiler.NO_OVERRIDE
-    spoiler_value = overrideSpoiler == OverrideSpoiler.SPOILER
+    post_handling_policies = PostHandlingPolicies(
+        spoiler_policy=spoiler_policy,
+        description_policy=description_policy,
+    )
 
     msgContent = message.text.split()
 
@@ -106,9 +102,7 @@ def handle_supported_site(message):
                 message,
                 link,
                 handler,
-                apply_spoiler_override=apply_spoiler_override,
-                spoiler_value=spoiler_value,
-                remove_description=removeDescription,
+                post_handling_policies=post_handling_policies,
             )
 
 

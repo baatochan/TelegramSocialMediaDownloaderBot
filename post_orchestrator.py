@@ -1,6 +1,8 @@
 import time
 import traceback
 
+from post_handling_policies import DescriptionPolicy, PostHandlingPolicies, SpoilerPolicy
+
 
 class PostOrchestrator:
     def __init__(self, post_data_sender, related_post_resolver, allowed_chats):
@@ -9,9 +11,7 @@ class PostOrchestrator:
         self.allowed_chats = allowed_chats
 
     def process_site_link(self, message, link: str, handler,
-                          apply_spoiler_override: bool,
-                          spoiler_value: bool,
-                          remove_description: bool) -> None:
+                          post_handling_policies: PostHandlingPolicies) -> None:
         site_label = handler.SITE_NAME
         link_to_handle = handler.normalize_url(link)
 
@@ -23,9 +23,11 @@ class PostOrchestrator:
             if post_data is None:
                 return
 
-        if apply_spoiler_override:
-            post_data.spoiler = spoiler_value
-        if remove_description:
+        if post_handling_policies.spoiler_policy == SpoilerPolicy.FORCE_SPOILER:
+            post_data.spoiler = True
+        elif post_handling_policies.spoiler_policy == SpoilerPolicy.FORCE_NO_SPOILER:
+            post_data.spoiler = False
+        if post_handling_policies.description_policy == DescriptionPolicy.REMOVE_DESCRIPTION:
             post_data.text = ""
 
         self.send_post_with_fallback(
