@@ -85,7 +85,7 @@ def handle_supported_site(message):
     for handler in handlers_to_process:
         links = extract_site_links(msgContent, handler.URL_REGEX)
         for link in links:
-            post_orchestrator.process_site_link(
+            post_orchestrator.process_link_for_handler(
                 message,
                 link,
                 handler,
