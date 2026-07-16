@@ -1,16 +1,24 @@
 import time
 import traceback
+from collections.abc import Collection
 
+from telebot.types import Message
+
+from handlers.base import MediaHandler, PostData
 from post_handling_policies import DescriptionPolicy, PostHandlingPolicies, SpoilerPolicy
+from post_data_sender import PostDataSender
+from related_post_resolver import RelatedPostResolver
 
 
 class PostOrchestrator:
-    def __init__(self, post_data_sender, related_post_resolver, allowed_chats):
+    def __init__(self, post_data_sender: PostDataSender,
+                 related_post_resolver: RelatedPostResolver,
+                 allowed_chats: Collection[int]):
         self.post_data_sender = post_data_sender
         self.related_post_resolver = related_post_resolver
         self.allowed_chats = allowed_chats
 
-    def process_link_for_handler(self, message, link: str, handler,
+    def process_link_for_handler(self, message: Message, link: str, handler: MediaHandler,
                                  post_handling_policies: PostHandlingPolicies) -> None:
         site_label = handler.SITE_NAME
         link_to_handle = handler.normalize_url(link)
@@ -32,7 +40,7 @@ class PostOrchestrator:
             link_to_handle,
         )
 
-    def _apply_policies(self, post_data,
+    def _apply_policies(self, post_data: PostData,
                         post_handling_policies: PostHandlingPolicies) -> None:
         if post_handling_policies.spoiler_policy == SpoilerPolicy.FORCE_SPOILER:
             post_data.spoiler = True
@@ -42,7 +50,8 @@ class PostOrchestrator:
         if post_handling_policies.description_policy == DescriptionPolicy.REMOVE_DESCRIPTION:
             post_data.text = ""
 
-    def _send_chain_with_fallback(self, message, post_data, handler, link_to_handle) -> None:
+    def _send_chain_with_fallback(self, message: Message, post_data: PostData,
+                                  handler: MediaHandler, link_to_handle: str) -> None:
         try:
             chain = self.related_post_resolver.resolve(
                 post_data,
