@@ -174,20 +174,30 @@ def signal_handler(signum, frame):
     if signum == signal.SIGINT or signum == signal.SIGTERM:
         sys.exit(signum)
 
-# def main():
+
+def install_signal_handlers():
+    for sig in set(signal.Signals):
+        try:
+            signal.signal(sig, signal_handler)
+            print("Handler for signal " + str(sig) + " set.")
+        except (ValueError, OSError, RuntimeError) as _:
+            pass
 
 
-for sig in set(signal.Signals):
-    try:
-        signal.signal(sig, signal_handler)
-        print("Handler for signal " + str(sig) + " set.")
-    except (ValueError, OSError, RuntimeError) as _:
-        pass
+def run_polling_forever():
+    while True:
+        try:
+            bot.polling()
+        except Exception as e:
+            print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
+            traceback.print_exception(type(e), e, e.__traceback__)
+            print()
 
-while True:
-    try:
-        bot.polling()
-    except Exception as e:
-        print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
-        traceback.print_exception(type(e), e, e.__traceback__)
-        print()
+
+def main():
+    install_signal_handlers()
+    run_polling_forever()
+
+
+if __name__ == "__main__":
+    main()
