@@ -24,23 +24,26 @@ from related_post_resolver import RelatedPostResolver
 
 me = singleton.SingleInstance()  # will sys.exit(-1) if other instance is running
 
-config = configparser.ConfigParser()
-if os.path.isfile("config.txt"):
-    config.read("config.txt")
-else:
-    print("No config file. Create config file and run the script again.")
-    exit(1)
 
+def load_config_or_exit(config_path="config.txt"):
+    config = configparser.ConfigParser()
+    if os.path.isfile(config_path):
+        config.read(config_path)
+        return config
+
+    print("No config file. Create config file and run the script again.")
+    sys.exit(1)
+
+
+config = load_config_or_exit()
 ALLOWED_USERS = json.loads(config['config']['allowed_users'])
 ALLOWED_CHATS = json.loads(config['config']['allowed_chats'])
 
 bot = telebot.TeleBot(config['config']['token'])
 BOT_ID = bot.get_me().id
-PARSE_MODE = "MarkdownV2"
-bot.parse_mode = PARSE_MODE
+bot.parse_mode = "MarkdownV2"
 
 ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
-
 post_data_sender = PostDataSender(bot, ERROR_MESSAGE)
 related_post_resolver = RelatedPostResolver()
 post_orchestrator = PostOrchestrator(
