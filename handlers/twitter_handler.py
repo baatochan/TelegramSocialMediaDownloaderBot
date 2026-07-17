@@ -100,6 +100,11 @@ class TwitterHandler(MediaHandler):
         if translated_text is None:
             return
 
+        if translated_text == "":
+            original_text = tweet.get("text")
+            if original_text != "":
+                return
+
         post_data.text = translated_text
 
     def _get_reply_quote_status(self, post_data, tweet):
