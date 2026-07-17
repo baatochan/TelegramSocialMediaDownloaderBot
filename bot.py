@@ -19,7 +19,7 @@ from handlers import (
 from post_orchestrator import PostOrchestrator
 from post_data_sender import PostDataSender
 from related_post_resolver import RelatedPostResolver
-from telegram_routes import register_handlers, register_special_derpibooru_handler
+from telegram_routes import TelegramRoutes
 
 
 me = singleton.SingleInstance()  # will sys.exit(-1) if other instance is running
@@ -93,7 +93,7 @@ def main() -> None:
     # Site-specific workflows still need direct access to selected handlers.
     booru_handler = handler_registry.get_handler(BooruHandler.SITE_NAME)
 
-    register_handlers(
+    routes = TelegramRoutes(
         bot,
         config,
         allowed_users,
@@ -103,14 +103,8 @@ def main() -> None:
         supported_sites_regex,
         post_orchestrator,
     )
-
-    register_special_derpibooru_handler(
-        bot,
-        allowed_users,
-        allowed_chats,
-        booru_handler,
-        post_data_sender,
-    )
+    routes.register_handlers()
+    routes.register_special_derpibooru_handler(booru_handler, post_data_sender)
 
     register_shutdown_signal_handlers()
     run_polling_forever(bot)
