@@ -53,12 +53,14 @@ class TelegramRoutes:
             if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == self.bot_id:
                 return
 
-            post_handling_policies = parse_post_handling_policies(message.text)
+            post_handling_policies = self._parse_post_handling_policies(
+                message.text)
 
             msg_content = message.text.split()
 
             for handler in self.handlers_to_process:
-                links = extract_site_links(msg_content, handler.URL_REGEX)
+                links = self._extract_site_links(
+                    msg_content, handler.URL_REGEX)
                 for link in links:
                     self.post_orchestrator.process_link_for_handler(
                         message,
@@ -97,42 +99,39 @@ class TelegramRoutes:
             else:
                 print("Can't handle derpibooru img {}".format(msg_text))
 
+    def _parse_post_handling_policies(self, message_text: str) -> PostHandlingPolicies:
+        if "BBspoiler=True" in message_text:
+            spoiler_policy = SpoilerPolicy.FORCE_SPOILER
+        elif "BBspoiler=False" in message_text:
+            spoiler_policy = SpoilerPolicy.FORCE_NO_SPOILER
+        else:
+            spoiler_policy = SpoilerPolicy.KEEP_ORIGINAL
 
-def parse_post_handling_policies(message_text: str) -> PostHandlingPolicies:
-    if "BBspoiler=True" in message_text:
-        spoiler_policy = SpoilerPolicy.FORCE_SPOILER
-    elif "BBspoiler=False" in message_text:
-        spoiler_policy = SpoilerPolicy.FORCE_NO_SPOILER
-    else:
-        spoiler_policy = SpoilerPolicy.KEEP_ORIGINAL
+        if "BBnoDesc=True" in message_text:
+            description_policy = DescriptionPolicy.REMOVE_DESCRIPTION
+        else:
+            description_policy = DescriptionPolicy.KEEP_ORIGINAL
 
-    if "BBnoDesc=True" in message_text:
-        description_policy = DescriptionPolicy.REMOVE_DESCRIPTION
-    else:
-        description_policy = DescriptionPolicy.KEEP_ORIGINAL
+        return PostHandlingPolicies(
+            spoiler_policy=spoiler_policy,
+            description_policy=description_policy,
+        )
 
-    return PostHandlingPolicies(
-        spoiler_policy=spoiler_policy,
-        description_policy=description_policy,
-    )
+    def _extract_site_links(self, msg_content: list[str], url_regex: str) -> list[str]:
+        r = re.compile(url_regex)
+        links = []
+        for token in msg_content:
+            normalized_token = self._normalize_message_token(token)
+            if not normalized_token:
+                continue
 
+            if r.match(normalized_token.lower()):
+                links.append(normalized_token)
 
-def normalize_message_token(token: str) -> str:
-    token = token.strip()
-    token = token.lstrip("'\"([{<")
-    token = token.rstrip(".,!?;:'\"])}>")
-    return token
+        return links
 
-
-def extract_site_links(msg_content: list[str], url_regex: str) -> list[str]:
-    r = re.compile(url_regex)
-    links = []
-    for token in msg_content:
-        normalized_token = normalize_message_token(token)
-        if not normalized_token:
-            continue
-
-        if r.match(normalized_token.lower()):
-            links.append(normalized_token)
-
-    return links
+    def _normalize_message_token(self, token: str) -> str:
+        token = token.strip()
+        token = token.lstrip("'\"([{<")
+        token = token.rstrip(".,!?;:'\"])}>")
+        return token
