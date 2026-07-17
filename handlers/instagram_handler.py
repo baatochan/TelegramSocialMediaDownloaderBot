@@ -50,7 +50,7 @@ class InstagramHandler(MediaHandler):
     @classmethod
     def _load_session_settings(cls, ig_client):
         try:
-            return ig_client.load_settings(cls.SESSION_SETTINGS_PATH)
+            return ig_client.load_settings(cls.SESSION_SETTINGS_PATH, override_app_version=True)
         except FileNotFoundError:
             return None
         except Exception as e:
