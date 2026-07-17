@@ -171,17 +171,20 @@ def signal_handler(signum, frame):
     print("Traceback (most recent call last):")
     traceback.print_stack(frame)
     print()
-    if signum == signal.SIGINT or signum == signal.SIGTERM:
-        sys.exit(signum)
+    sys.exit(signum)
 
 
-def install_signal_handlers():
-    for sig in set(signal.Signals):
-        try:
-            signal.signal(sig, signal_handler)
-            print("Handler for signal " + str(sig) + " set.")
-        except (ValueError, OSError, RuntimeError) as _:
-            pass
+def register_shutdown_signal_handlers():
+    shutdown_signals = [signal.SIGINT, signal.SIGTERM]
+
+    for signal_name in ("SIGHUP", "SIGQUIT"):
+        shutdown_signal = getattr(signal, signal_name, None)
+        if shutdown_signal is not None:
+            shutdown_signals.append(shutdown_signal)
+
+    for sig in shutdown_signals:
+        signal.signal(sig, signal_handler)
+        print("Handler for signal " + str(sig) + " set.")
 
 
 def run_polling_forever():
@@ -195,7 +198,7 @@ def run_polling_forever():
 
 
 def main():
-    install_signal_handlers()
+    register_shutdown_signal_handlers()
     run_polling_forever()
 
 
