@@ -7,9 +7,12 @@ import signal
 import sys
 import time
 import traceback
+from collections.abc import Collection
+from types import FrameType
 
 import telebot
 from telebot.formatting import escape_markdown
+from telebot.types import Message
 from tendo import singleton
 
 from handlers import (
@@ -25,7 +28,7 @@ from related_post_resolver import RelatedPostResolver
 me = singleton.SingleInstance()  # will sys.exit(-1) if other instance is running
 
 
-def load_config_or_exit(config_path="config.txt"):
+def load_config_or_exit(config_path: str = "config.txt") -> configparser.ConfigParser:
     config = configparser.ConfigParser()
     if os.path.isfile(config_path):
         config.read(config_path)
@@ -36,17 +39,17 @@ def load_config_or_exit(config_path="config.txt"):
 
 
 def register_handlers(
-    bot,
-    config,
-    allowed_users,
-    allowed_chats,
-    bot_id,
+    bot: telebot.TeleBot,
+    config: configparser.ConfigParser,
+    allowed_users: Collection[int],
+    allowed_chats: Collection[int],
+    bot_id: int,
     handlers_to_process,
-    supported_sites_regex,
-    post_orchestrator,
-):
+    supported_sites_regex: str,
+    post_orchestrator: PostOrchestrator,
+) -> None:
     @bot.message_handler(commands=['start', 'help'])
-    def send_welcome(message):
+    def send_welcome(message: Message) -> None:
         if message.from_user.id in allowed_users:
             welcome_message_text = escape_markdown("Hi, I can download media from different social media and send" +
                                                    " them to you here on telegram. Send me a link and I'll take care of the rest.")
@@ -61,7 +64,7 @@ def register_handlers(
                          parse_mode=None)
 
     @bot.message_handler(regexp=supported_sites_regex, func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
-    def handle_supported_site(message):
+    def handle_supported_site(message: Message) -> None:
         if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == bot_id:
             return
 
@@ -80,24 +83,24 @@ def register_handlers(
                 )
 
     @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
-    def handle_link(message):
+    def handle_link(message: Message) -> None:
         if message.chat.id not in allowed_chats:
             bot.reply_to(message, "This site is not supported yet\.")
 
     @bot.message_handler(regexp="test", func=lambda message: message.from_user.id in allowed_users)
-    def test(message):
+    def test(message: Message) -> None:
         pass
 
 
 def register_special_derpibooru_handler(
-    bot,
-    allowed_users,
-    allowed_chats,
+    bot: telebot.TeleBot,
+    allowed_users: Collection[int],
+    allowed_chats: Collection[int],
     booru_handler,
-    post_data_sender,
-):
+    post_data_sender: PostDataSender,
+) -> None:
     @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
-    def handle_derpibooru_magic_character_request(message):
+    def handle_derpibooru_magic_character_request(message: Message) -> None:
         msg_text = message.text.strip()
         msg_text = msg_text.lstrip(">>").lstrip("»")
 
@@ -157,7 +160,7 @@ def extract_site_links(msg_content: list[str], url_regex: str) -> list[str]:
     return links
 
 
-def signal_handler(signum, frame):
+def signal_handler(signum: int, frame: FrameType | None) -> None:
     print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
     print("Captured signal: " + str(signum))
     print("Traceback (most recent call last):")
@@ -166,7 +169,7 @@ def signal_handler(signum, frame):
     sys.exit(signum)
 
 
-def register_shutdown_signal_handlers():
+def register_shutdown_signal_handlers() -> None:
     shutdown_signals = [signal.SIGINT, signal.SIGTERM]
 
     for signal_name in ("SIGHUP", "SIGQUIT"):
@@ -179,7 +182,7 @@ def register_shutdown_signal_handlers():
         print("Handler for signal " + str(sig) + " set.")
 
 
-def run_polling_forever(bot):
+def run_polling_forever(bot: telebot.TeleBot) -> None:
     while True:
         try:
             bot.polling()
@@ -189,7 +192,7 @@ def run_polling_forever(bot):
             print()
 
 
-def main():
+def main() -> None:
     config = load_config_or_exit()
     allowed_users = json.loads(config['config']['allowed_users'])
     allowed_chats = json.loads(config['config']['allowed_chats'])
