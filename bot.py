@@ -44,8 +44,6 @@ def register_handlers(
     handlers_to_process,
     supported_sites_regex,
     post_orchestrator,
-    post_data_sender,
-    booru_handler,
 ):
     @bot.message_handler(commands=['start', 'help'])
     def send_welcome(message):
@@ -81,6 +79,23 @@ def register_handlers(
                     post_handling_policies=post_handling_policies,
                 )
 
+    @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
+    def handle_link(message):
+        if message.chat.id not in allowed_chats:
+            bot.reply_to(message, "This site is not supported yet\.")
+
+    @bot.message_handler(regexp="test", func=lambda message: message.from_user.id in allowed_users)
+    def test(message):
+        pass
+
+
+def register_special_derpibooru_handler(
+    bot,
+    allowed_users,
+    allowed_chats,
+    booru_handler,
+    post_data_sender,
+):
     @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
     def handle_derpibooru_magic_character_request(message):
         msg_text = message.text.strip()
@@ -100,15 +115,6 @@ def register_handlers(
             post_data_sender.send(message, post_data)
         else:
             print("Can't handle derpibooru img {}".format(msg_text))
-
-    @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
-    def handle_link(message):
-        if message.chat.id not in allowed_chats:
-            bot.reply_to(message, "This site is not supported yet\.")
-
-    @bot.message_handler(regexp="test", func=lambda message: message.from_user.id in allowed_users)
-    def test(message):
-        pass
 
 
 def parse_post_handling_policies(message_text: str) -> PostHandlingPolicies:
@@ -218,8 +224,14 @@ def main():
         handlers_to_process,
         supported_sites_regex,
         post_orchestrator,
-        post_data_sender,
+    )
+
+    register_special_derpibooru_handler(
+        bot,
+        allowed_users,
+        allowed_chats,
         booru_handler,
+        post_data_sender,
     )
 
     register_shutdown_signal_handlers()
