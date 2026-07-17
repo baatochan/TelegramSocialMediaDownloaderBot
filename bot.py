@@ -12,10 +12,7 @@ import telebot
 from telebot.formatting import escape_markdown
 from tendo import singleton
 
-from handlers import (
-    BooruHandler,
-    HandlerRegistry,
-)
+from handlers import BooruHandler, HandlerRegistry
 from post_orchestrator import PostOrchestrator
 from post_data_sender import PostDataSender
 from related_post_resolver import RelatedPostResolver
@@ -35,13 +32,10 @@ def load_config_or_exit(config_path: str = "config.txt") -> configparser.ConfigP
     sys.exit(1)
 
 
-def signal_handler(signum: int, frame: FrameType | None) -> None:
-    print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
-    print("Captured signal: " + str(signum))
-    print("Traceback (most recent call last):")
-    traceback.print_stack(frame)
-    print()
-    sys.exit(signum)
+def create_bot(config: configparser.ConfigParser) -> telebot.TeleBot:
+    bot = telebot.TeleBot(config['config']['token'])
+    bot.parse_mode = "MarkdownV2"
+    return bot
 
 
 def register_shutdown_signal_handlers() -> None:
@@ -57,6 +51,15 @@ def register_shutdown_signal_handlers() -> None:
         print("Handler for signal " + str(sig) + " set.")
 
 
+def signal_handler(signum: int, frame: FrameType | None) -> None:
+    print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
+    print("Captured signal: " + str(signum))
+    print("Traceback (most recent call last):")
+    traceback.print_stack(frame)
+    print()
+    sys.exit(signum)
+
+
 def run_polling_forever(bot: telebot.TeleBot) -> None:
     while True:
         try:
@@ -65,12 +68,6 @@ def run_polling_forever(bot: telebot.TeleBot) -> None:
             print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
             traceback.print_exception(type(e), e, e.__traceback__)
             print()
-
-
-def create_bot(config: configparser.ConfigParser) -> telebot.TeleBot:
-    bot = telebot.TeleBot(config['config']['token'])
-    bot.parse_mode = "MarkdownV2"
-    return bot
 
 
 def main() -> None:
