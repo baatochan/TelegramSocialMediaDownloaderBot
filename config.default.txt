@@ -9,11 +9,15 @@ allowed_chats = [-10002137, -100042069]
 owner_username = @example
 
 [instagram]
+# set to False to completely disable instagram support, useful when restarting bot many times so ig wont ban the ip
+enabled = True
 # credentials for instagrapi (ig api), it is advised to create a throw away account for this as it may get banned
 # change do_login to true if you want to log in
 do_login = False
 username = example
 password = example
+# user agent string passed to instagrapi (you need to change it into a correct one)
+user_agent = Instagram 000.0.0.0.00 Android (00/0; 000dpi; 000x0000; manufacturer; model; codename; cpu; en_US; 000000000)
 
 [9gag]
 # Selenium seems to be required for 9gag scrapping to work, however as it is resource intensive some may want to disable it.
