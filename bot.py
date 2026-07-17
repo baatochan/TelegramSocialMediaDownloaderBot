@@ -67,13 +67,18 @@ def run_polling_forever(bot: telebot.TeleBot) -> None:
             print()
 
 
+def create_bot(config: configparser.ConfigParser) -> telebot.TeleBot:
+    bot = telebot.TeleBot(config['config']['token'])
+    bot.parse_mode = "MarkdownV2"
+    return bot
+
+
 def main() -> None:
     config = load_config_or_exit()
     allowed_users = json.loads(config['config']['allowed_users'])
     allowed_chats = json.loads(config['config']['allowed_chats'])
 
-    bot = telebot.TeleBot(config['config']['token'])
-    bot.parse_mode = "MarkdownV2"
+    bot = create_bot(config)
     bot_id = bot.get_me().id
 
     error_message = escape_markdown(
