@@ -35,65 +35,80 @@ def load_config_or_exit(config_path="config.txt"):
     sys.exit(1)
 
 
-config = load_config_or_exit()
-ALLOWED_USERS = json.loads(config['config']['allowed_users'])
-ALLOWED_CHATS = json.loads(config['config']['allowed_chats'])
-
-bot = telebot.TeleBot(config['config']['token'])
-BOT_ID = bot.get_me().id
-bot.parse_mode = "MarkdownV2"
-
-ERROR_MESSAGE = escape_markdown("Can't download this post. Try again later.")
-post_data_sender = PostDataSender(bot, ERROR_MESSAGE)
-related_post_resolver = RelatedPostResolver()
-post_orchestrator = PostOrchestrator(
+def register_handlers(
+    bot,
+    config,
+    allowed_users,
+    allowed_chats,
+    bot_id,
+    handlers_to_process,
+    supported_sites_regex,
+    post_orchestrator,
     post_data_sender,
-    related_post_resolver,
-    ALLOWED_CHATS,
-)
+    booru_handler,
+):
+    @bot.message_handler(commands=['start', 'help'])
+    def send_welcome(message):
+        if message.from_user.id in allowed_users:
+            welcome_message_text = escape_markdown("Hi, I can download media from different social media and send" +
+                                                   " them to you here on telegram. Send me a link and I'll take care of the rest.")
+            bot.reply_to(message=message, text=welcome_message_text)
+        else:
+            print(message.from_user)
+            unwelcome_message_text = escape_markdown("Hi, only approved users can use me. Contact " +
+                                                     config['config']['owner_username'] +
+                                                     " if you think you should get the access :)")
+            bot.reply_to(message=message,
+                         text=unwelcome_message_text,
+                         parse_mode=None)
 
-handler_registry = HandlerRegistry.create_from_config(config)
-handlers_to_process = handler_registry.get_active_handlers()
-supported_sites_regex = handler_registry.get_active_combined_regex()
+    @bot.message_handler(regexp=supported_sites_regex, func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
+    def handle_supported_site(message):
+        if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == bot_id:
+            return
 
-# Site-specific workflows still need direct access to selected handlers.
-booru_handler = handler_registry.get_handler(BooruHandler.SITE_NAME)
+        post_handling_policies = parse_post_handling_policies(message.text)
 
+        msg_content = message.text.split()
 
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    if message.from_user.id in ALLOWED_USERS:
-        welcome_message_text = escape_markdown("Hi, I can download media from different social media and send" +
-                                               " them to you here on telegram. Send me a link and I'll take care of the rest.")
-        bot.reply_to(message=message, text=welcome_message_text)
-    else:
-        print(message.from_user)
-        unwelcome_message_text = escape_markdown("Hi, only approved users can use me. Contact " +
-                                                 config['config']['owner_username'] +
-                                                 " if you think you should get the access :)")
-        bot.reply_to(message=message,
-                     text=unwelcome_message_text,
-                     parse_mode=None)
+        for handler in handlers_to_process:
+            links = extract_site_links(msg_content, handler.URL_REGEX)
+            for link in links:
+                post_orchestrator.process_link_for_handler(
+                    message,
+                    link,
+                    handler,
+                    post_handling_policies=post_handling_policies,
+                )
 
+    @bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
+    def handle_derpibooru_magic_character_request(message):
+        msg_text = message.text.strip()
+        msg_text = msg_text.lstrip(">>").lstrip("»")
 
-@bot.message_handler(regexp=supported_sites_regex, func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-def handle_supported_site(message):
-    if message.forward_origin and message.forward_origin.type == "user" and message.forward_origin.sender_user.id == BOT_ID:
-        return
+        if msg_text.startswith("!"):
+            post_data = booru_handler.handle_with_options(
+                "https://derpibooru.org/{}".format(msg_text.lstrip("!")), allow_nsfw=True, spoil_nsfw=False)
+        elif msg_text.startswith("?"):
+            post_data = booru_handler.handle_with_options(
+                "https://derpibooru.org/{}".format(msg_text.lstrip("?")))
+        else:
+            post_data = booru_handler.handle_with_options(
+                "https://derpibooru.org/{}".format(msg_text), allow_nsfw=False)
 
-    post_handling_policies = parse_post_handling_policies(message.text)
+        if post_data is not None:
+            post_data_sender.send(message, post_data)
+        else:
+            print("Can't handle derpibooru img {}".format(msg_text))
 
-    msgContent = message.text.split()
+    @bot.message_handler(regexp="http", func=lambda message: message.from_user.id in allowed_users or message.chat.id in allowed_chats)
+    def handle_link(message):
+        if message.chat.id not in allowed_chats:
+            bot.reply_to(message, "This site is not supported yet\.")
 
-    for handler in handlers_to_process:
-        links = extract_site_links(msgContent, handler.URL_REGEX)
-        for link in links:
-            post_orchestrator.process_link_for_handler(
-                message,
-                link,
-                handler,
-                post_handling_policies=post_handling_policies,
-            )
+    @bot.message_handler(regexp="test", func=lambda message: message.from_user.id in allowed_users)
+    def test(message):
+        pass
 
 
 def parse_post_handling_policies(message_text: str) -> PostHandlingPolicies:
@@ -136,38 +151,6 @@ def extract_site_links(msg_content: list[str], url_regex: str) -> list[str]:
     return links
 
 
-@bot.message_handler(regexp="^\s*(>>|»)(\!|\?)?\d+\s*", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-def handle_derpibooru_magic_character_request(message):
-    msg_text = message.text.strip()
-    msg_text = msg_text.lstrip(">>").lstrip("»")
-
-    if msg_text.startswith("!"):
-        post_data = booru_handler.handle_with_options(
-            "https://derpibooru.org/{}".format(msg_text.lstrip("!")), allow_nsfw=True, spoil_nsfw=False)
-    elif msg_text.startswith("?"):
-        post_data = booru_handler.handle_with_options(
-            "https://derpibooru.org/{}".format(msg_text.lstrip("?")))
-    else:
-        post_data = booru_handler.handle_with_options(
-            "https://derpibooru.org/{}".format(msg_text), allow_nsfw=False)
-
-    if post_data is not None:
-        post_data_sender.send(message, post_data)
-    else:
-        print("Can't handle derpibooru img {}".format(msg_text))
-
-
-@bot.message_handler(regexp="http", func=lambda message: message.from_user.id in ALLOWED_USERS or message.chat.id in ALLOWED_CHATS)
-def handle_link(message):
-    if message.chat.id not in ALLOWED_CHATS:
-        bot.reply_to(message, "This site is not supported yet\.")
-
-
-@bot.message_handler(regexp="test", func=lambda message: message.from_user.id in ALLOWED_USERS)
-def test(message):
-    pass
-
-
 def signal_handler(signum, frame):
     print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
     print("Captured signal: " + str(signum))
@@ -190,7 +173,7 @@ def register_shutdown_signal_handlers():
         print("Handler for signal " + str(sig) + " set.")
 
 
-def run_polling_forever():
+def run_polling_forever(bot):
     while True:
         try:
             bot.polling()
@@ -201,8 +184,46 @@ def run_polling_forever():
 
 
 def main():
+    config = load_config_or_exit()
+    allowed_users = json.loads(config['config']['allowed_users'])
+    allowed_chats = json.loads(config['config']['allowed_chats'])
+
+    bot = telebot.TeleBot(config['config']['token'])
+    bot.parse_mode = "MarkdownV2"
+    bot_id = bot.get_me().id
+
+    error_message = escape_markdown(
+        "Can't download this post. Try again later.")
+    post_data_sender = PostDataSender(bot, error_message)
+    related_post_resolver = RelatedPostResolver()
+    post_orchestrator = PostOrchestrator(
+        post_data_sender,
+        related_post_resolver,
+        allowed_chats,
+    )
+
+    handler_registry = HandlerRegistry.create_from_config(config)
+    handlers_to_process = handler_registry.get_active_handlers()
+    supported_sites_regex = handler_registry.get_active_combined_regex()
+
+    # Site-specific workflows still need direct access to selected handlers.
+    booru_handler = handler_registry.get_handler(BooruHandler.SITE_NAME)
+
+    register_handlers(
+        bot,
+        config,
+        allowed_users,
+        allowed_chats,
+        bot_id,
+        handlers_to_process,
+        supported_sites_regex,
+        post_orchestrator,
+        post_data_sender,
+        booru_handler,
+    )
+
     register_shutdown_signal_handlers()
-    run_polling_forever()
+    run_polling_forever(bot)
 
 
 if __name__ == "__main__":
