@@ -125,7 +125,7 @@ class BooruHandler(MediaHandler):
         if self.CONVERT_WEBM_VIDEO:
             webm_filename = file_downloader.download_video(url=booru_image['representations']['full'],
                                                            site="booru",
-                                                           id=str(booru_image['id']))
+                                                           post_id=str(booru_image['id']))
 
             converted_filename = file_converter.convert_webm_to_mp4(
                 webm_filename)
