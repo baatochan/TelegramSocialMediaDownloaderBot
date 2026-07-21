@@ -62,7 +62,8 @@ class PostDataSender:
     def remove_hashtags(self, text):
         # Remove hashtags when there are 4 or more grouped together
         # # and eveyrthing not being a whitespace is considered a signle hashtag
-        text = re.sub(r'((#[^\s]+)\s+){3,}(#[^\s]+)', '', text, flags=re.UNICODE)
+        text = re.sub(r'((#[^\s]+)\s+){3,}(#[^\s]+)',
+                      '', text, flags=re.UNICODE)
         # Removing hashtags may leave some empty lines so we need to remove them
         text = text.strip()
         return text
@@ -118,12 +119,13 @@ class PostDataSender:
             sent_message = self.send_photo_post(
                 orig_tg_msg, media[0], caption, post_data.spoiler, msg_to_reply_to)
         elif media[1] == "video":
+            filename = file_downloader.download_video(
+                media[0], post_data.site, str(post_data.post_id))
             sent_message = self.send_video_post(
-                orig_tg_msg, media[0], caption, post_data.spoiler, msg_to_reply_to)
+                orig_tg_msg, open(filename, "rb"), caption, post_data.spoiler, msg_to_reply_to)
         elif media[1] == "video_file":
-            video_file = open(media[0], "rb")
             sent_message = self.send_video_post(
-                orig_tg_msg, video_file, caption, post_data.spoiler, msg_to_reply_to)
+                orig_tg_msg, open(media[0], "rb"), caption, post_data.spoiler, msg_to_reply_to)
         elif media[1] == "gif":
             sent_message = self.send_gif_post(
                 orig_tg_msg, media[0], caption, post_data.spoiler, msg_to_reply_to)
@@ -218,8 +220,11 @@ class PostDataSender:
                 media_group.append(InputMediaPhoto(
                     media=media[0], has_spoiler=post_data.spoiler))
             elif media[1] == "video":
+                filename = file_downloader.download_video(
+                    media[0], post_data.site, str(post_data.post_id) + "_" + str(i))
+                i += 1
                 media_group.append(InputMediaVideo(
-                    media=media[0], has_spoiler=post_data.spoiler))
+                    media=open(filename, "rb"), has_spoiler=post_data.spoiler))
             elif media[1] == "video_file":
                 media_group.append(InputMediaVideo(
                     media=open(media[0], "rb"), has_spoiler=post_data.spoiler))
@@ -230,7 +235,8 @@ class PostDataSender:
                 media_group.append(InputMediaVideo(
                     media=open(filename, "rb"), has_spoiler=post_data.spoiler))
             else:
-                print("This type of media (" + media[1] + ") is not supported.")
+                print("This type of media (" +
+                      media[1] + ") is not supported.")
                 print(post_data)
 
         if len(media_group) > 10:
@@ -295,11 +301,11 @@ class PostDataSender:
 
     def send_text_post(self, orig_tg_msg, caption, msg_to_reply_to):
         sent_message = self.bot.send_message(chat_id=orig_tg_msg.chat.id,
-                                            text=caption.long,
-                                            reply_parameters=ReplyParameters(
-                                                message_id=msg_to_reply_to.message_id,
-                                                allow_sending_without_reply=True),
-                                            link_preview_options=LinkPreviewOptions(is_disabled=True))
+                                             text=caption.long,
+                                             reply_parameters=ReplyParameters(
+                                                 message_id=msg_to_reply_to.message_id,
+                                                 allow_sending_without_reply=True),
+                                             link_preview_options=LinkPreviewOptions(is_disabled=True))
         self.delete_handled_message(orig_tg_msg)
         return sent_message
 
