@@ -54,10 +54,15 @@ def register_shutdown_signal_handlers() -> None:
 def signal_handler(signum: int, frame: FrameType | None) -> None:
     print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
     print("Captured signal: " + str(signum))
-    print("Traceback (most recent call last):")
-    traceback.print_stack(frame)
-    print()
-    sys.exit(signum)
+
+    sighup_signal = getattr(signal, "SIGHUP", None)
+
+    if signum != sighup_signal:
+        print("Traceback (most recent call last):")
+        traceback.print_stack(frame)
+        print()
+
+        sys.exit(signum)
 
 
 def run_polling_forever(bot: telebot.TeleBot) -> None:
