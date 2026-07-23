@@ -53,9 +53,9 @@ class NineGagHandler(MediaHandler):
     def handle(self, link: str) -> PostData | None:
         try:
             if self.use_selenium:
-                page_source = self._handle_url_with_selenium(link)
+                page_source = self._fetch_page_with_selenium(link)
             else:
-                page_source = self._handle_url_with_requests(link)
+                page_source = self._fetch_page_with_requests(link)
 
             soup = BeautifulSoup(page_source, 'html.parser')
             for script in soup.find_all('script', attrs={"type": "text/javascript"}):
@@ -84,7 +84,7 @@ class NineGagHandler(MediaHandler):
         print("9gag returned incomplete json data.")
         return None
 
-    def _handle_url_with_selenium(self, link: str):
+    def _fetch_page_with_selenium(self, link: str):
         ff_options = webdriver.FirefoxOptions()
         ff_options.add_argument("--headless")
         browser = webdriver.Firefox(options=ff_options)
@@ -93,7 +93,7 @@ class NineGagHandler(MediaHandler):
         browser.quit()
         return source
 
-    def _handle_url_with_requests(self, link: str) -> str:
+    def _fetch_page_with_requests(self, link: str) -> str:
         if self.session is None:
             self.session = self._create_session()
 
