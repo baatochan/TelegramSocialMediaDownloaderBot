@@ -52,37 +52,26 @@ class NineGagHandler(MediaHandler):
 
     def handle(self, link: str) -> PostData | None:
         try:
-            if self.use_selenium:
-                page_source = self._fetch_page_with_selenium(link)
-            else:
-                page_source = self._fetch_page_with_requests(link)
+            page_source = self._fetch_page_source(link)
 
-            soup = BeautifulSoup(page_source, 'html.parser')
-            for script in soup.find_all('script', attrs={"type": "text/javascript"}):
-                if "window._config = JSON.parse" in script.get_text():
-                    json_text = script.get_text()
+            post_json_data = self._extract_post_json_from_page_source(
+                page_source)
+            if post_json_data is None:
+                print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
+                print("9gag returned incomplete json data.")
+                return None
 
-                    # Remove single backslashes while keeping escaped backslashes.
-                    json_text = re.sub(r'\\(?!\\)', '', json_text)
-                    json_text = json_text.replace("\\\\", "\\")
-
-                    # Extract only raw JSON from the surrounding JS expression.
-                    json_text = json_text.replace(
-                        "window._config = JSON.parse(\"", "")
-                    json_text = json_text.replace("\");", "")
-
-                    loaded_json = json.loads(json_text)
-                    return self._check_media_type(loaded_json['data']['post'])
+            return self._build_post_data_from_post_json(post_json_data)
         except Exception as e:
             print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
             traceback.print_exception(type(e), e, e.__traceback__)
             print()
             return None
 
-        # If parsing succeeds but payload is incomplete.
-        print(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
-        print("9gag returned incomplete json data.")
-        return None
+    def _fetch_page_source(self, link: str) -> str:
+        if self.use_selenium:
+            return self._fetch_page_with_selenium(link)
+        return self._fetch_page_with_requests(link)
 
     def _fetch_page_with_selenium(self, link: str):
         ff_options = webdriver.FirefoxOptions()
@@ -101,7 +90,27 @@ class NineGagHandler(MediaHandler):
         response.raise_for_status()
         return response.text
 
-    def _check_media_type(self, post_json_data) -> PostData | None:
+    def _extract_post_json_from_page_source(self, page_source: str):
+        soup = BeautifulSoup(page_source, 'html.parser')
+        for script in soup.find_all('script', attrs={"type": "text/javascript"}):
+            if "window._config = JSON.parse" in script.get_text():
+                json_text = script.get_text()
+
+                # Remove single backslashes while keeping escaped backslashes.
+                json_text = re.sub(r'\\(?!\\)', '', json_text)
+                json_text = json_text.replace("\\\\", "\\")
+
+                # Extract only raw JSON from the surrounding JS expression.
+                json_text = json_text.replace(
+                    "window._config = JSON.parse(\"", "")
+                json_text = json_text.replace("\");", "")
+
+                loaded_json = json.loads(json_text)
+                return loaded_json['data']['post']
+
+        return None
+
+    def _build_post_data_from_post_json(self, post_json_data) -> PostData | None:
         match post_json_data['type']:
             case "Photo":
                 return self._handle_picture(post_json_data)
