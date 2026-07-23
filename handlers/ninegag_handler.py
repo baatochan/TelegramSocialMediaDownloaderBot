@@ -4,9 +4,10 @@ import time
 import traceback
 
 import requests
+from requests.adapters import HTTPAdapter
 from bs4 import BeautifulSoup
-from getuseragent import UserAgent
 from selenium import webdriver
+from urllib3.util.retry import Retry
 
 from handlers.base import MediaHandler, PostData
 
@@ -14,9 +15,40 @@ from handlers.base import MediaHandler, PostData
 class NineGagHandler(MediaHandler):
     SITE_NAME = "9gag"
     URL_REGEX = r"((http(s)?://)|^| )(www\.)?9gag\.com/.+"
+    REQUEST_TIMEOUT = (8, 25)
 
     def __init__(self, use_selenium: bool = True):
         self.use_selenium = use_selenium
+        self.session: requests.Session | None = None
+
+        if not self.use_selenium:
+            self.session = self._create_session()
+
+    def _create_session(self) -> requests.Session:
+        session = requests.Session()
+        session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (X11; Linux x86_64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/126.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+        )
+
+        retry = Retry(
+            total=3,
+            backoff_factor=0.8,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"],
+            respect_retry_after_header=True,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        return session
 
     def handle(self, link: str) -> PostData | None:
         try:
@@ -61,11 +93,13 @@ class NineGagHandler(MediaHandler):
         browser.quit()
         return source
 
-    def _handle_url_with_requests(self, link: str):
-        user_agent = UserAgent().Random()
-        headers = {'User-Agent': user_agent}
-        response = requests.get(link, headers=headers)
-        return response.content.decode()
+    def _handle_url_with_requests(self, link: str) -> str:
+        if self.session is None:
+            self.session = self._create_session()
+
+        response = self.session.get(link, timeout=self.REQUEST_TIMEOUT)
+        response.raise_for_status()
+        return response.text
 
     def _check_media_type(self, post_json_data) -> PostData | None:
         match post_json_data['type']:
