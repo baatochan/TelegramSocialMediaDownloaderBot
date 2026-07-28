@@ -107,22 +107,34 @@ class PostDataSender:
 
     def send_media_post(self, orig_tg_msg, post_data: PostData, caption, msg_to_reply_to):
         if len(post_data.media) == 1:
-            return self.send_singular_media_post(
-                orig_tg_msg, post_data, caption, msg_to_reply_to)
+            try:
+                return self.send_singular_media_post(
+                    orig_tg_msg, post_data, caption, msg_to_reply_to, download_video=False)
+            except Exception:
+                return self.send_singular_media_post(
+                    orig_tg_msg, post_data, caption, msg_to_reply_to, download_video=True)
         else:
-            return self.send_multiple_media_post(
-                orig_tg_msg, post_data, caption, msg_to_reply_to)
+            try:
+                return self.send_multiple_media_post(
+                    orig_tg_msg, post_data, caption, msg_to_reply_to, download_video=False)
+            except Exception:
+                return self.send_multiple_media_post(
+                    orig_tg_msg, post_data, caption, msg_to_reply_to, download_video=True)
 
-    def send_singular_media_post(self, orig_tg_msg, post_data: PostData, caption, msg_to_reply_to):
+    def send_singular_media_post(self, orig_tg_msg, post_data: PostData, caption, msg_to_reply_to, download_video=True):
         media = post_data.media[0]
         if media[1] == "photo":
             sent_message = self.send_photo_post(
                 orig_tg_msg, media[0], caption, post_data.spoiler, msg_to_reply_to)
         elif media[1] == "video":
-            filename = file_downloader.download_video(
-                media[0], post_data.site, str(post_data.post_id))
-            sent_message = self.send_video_post(
-                orig_tg_msg, open(filename, "rb"), caption, post_data.spoiler, msg_to_reply_to)
+            if download_video:
+                filename = file_downloader.download_video(
+                    media[0], post_data.site, str(post_data.post_id))
+                sent_message = self.send_video_post(
+                    orig_tg_msg, open(filename, "rb"), caption, post_data.spoiler, msg_to_reply_to)
+            else:
+                sent_message = self.send_video_post(
+                    orig_tg_msg, media[0], caption, post_data.spoiler, msg_to_reply_to)
         elif media[1] == "video_file":
             sent_message = self.send_video_post(
                 orig_tg_msg, open(media[0], "rb"), caption, post_data.spoiler, msg_to_reply_to)
@@ -212,7 +224,7 @@ class PostDataSender:
                                                  link_preview_options=LinkPreviewOptions(is_disabled=True))
         return sent_message
 
-    def send_multiple_media_post(self, orig_tg_msg, post_data: PostData, caption, msg_to_reply_to):
+    def send_multiple_media_post(self, orig_tg_msg, post_data: PostData, caption, msg_to_reply_to, download_video=True):
         media_group = []
         i = 0
         for media in post_data.media:
@@ -220,11 +232,15 @@ class PostDataSender:
                 media_group.append(InputMediaPhoto(
                     media=media[0], has_spoiler=post_data.spoiler))
             elif media[1] == "video":
-                filename = file_downloader.download_video(
-                    media[0], post_data.site, str(post_data.post_id) + "_" + str(i))
-                i += 1
-                media_group.append(InputMediaVideo(
-                    media=open(filename, "rb"), has_spoiler=post_data.spoiler))
+                if download_video:
+                    filename = file_downloader.download_video(
+                        media[0], post_data.site, str(post_data.post_id) + "_" + str(i))
+                    i += 1
+                    media_group.append(InputMediaVideo(
+                        media=open(filename, "rb"), has_spoiler=post_data.spoiler))
+                else:
+                    media_group.append(InputMediaVideo(
+                        media=media[0], has_spoiler=post_data.spoiler))
             elif media[1] == "video_file":
                 media_group.append(InputMediaVideo(
                     media=open(media[0], "rb"), has_spoiler=post_data.spoiler))
